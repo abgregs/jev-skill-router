@@ -162,7 +162,10 @@ export function staticFindings(
         u.reason === 'no-skill-md'
           ? `${u.source} has no SKILL.md`
           : `${u.source} has no description in its frontmatter`,
-      action: 'add a description — the router (and progressive disclosure) cannot see this skill at all'
+      action:
+        u.reason === 'no-skill-md'
+          ? 'add a SKILL.md with a description, or remove the folder if it is not a skill'
+          : 'add a description — the router skips skills without one (Claude Code falls back to the first line of the body)'
     })
   }
 

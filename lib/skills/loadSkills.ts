@@ -4,13 +4,25 @@ import { dirname, join, resolve } from 'node:path'
 import matter from 'gray-matter'
 import type { Skill } from './types.js'
 
+/** A folder of <slug>/SKILL.md skills; a `synced` root holds claude.ai account buckets. */
+export interface SkillRoot {
+  dir: string
+  scope: 'global' | 'project' | 'synced'
+}
+
+// Claude Code downloads claude.ai skills into ~/.claude/skills/synced/<account>/<slug>/
+// and loads them under this reserved namespace (e.g. anthropic-skills:pdf).
+const SYNCED_FOLDER = 'synced'
+export const SYNCED_NAMESPACE = 'anthropic-skills'
+
 /**
  * Default skill roots, in Claude Code precedence order: personal first, then the
  * project's .claude/skills in the start directory and every parent up to the
  * repository root (the nearest directory holding .git; a worktree's .git file
- * counts). Outside a repository only the start directory is searched.
+ * counts), then skills synced from claude.ai. Outside a repository only the start
+ * directory is searched.
  */
-export function defaultSkillRoots(cwd = process.cwd()): { dir: string; scope: 'global' | 'project' }[] {
+export function defaultSkillRoots(cwd = process.cwd()): SkillRoot[] {
   const projectDirs: string[] = []
   for (let dir = resolve(cwd); ; dir = dirname(dir)) {
     projectDirs.push(dir)
@@ -22,8 +34,14 @@ export function defaultSkillRoots(cwd = process.cwd()): { dir: string; scope: 'g
   }
   return [
     { dir: join(homedir(), '.claude', 'skills'), scope: 'global' },
-    ...projectDirs.map((dir) => ({ dir: join(dir, '.claude', 'skills'), scope: 'project' as const }))
+    ...projectDirs.map((dir) => ({ dir: join(dir, '.claude', 'skills'), scope: 'project' as const })),
+    { dir: join(homedir(), '.claude', 'skills', SYNCED_FOLDER), scope: 'synced' }
   ]
+}
+
+/** Claude Code's own folders inside a skills root: the synced container and dot-folders like .trash. */
+function isHostFolder(entry: string): boolean {
+  return entry === SYNCED_FOLDER || entry.startsWith('.')
 }
 
 // Common English + Markdown noise we don't want polluting the keyword index.
@@ -47,7 +65,7 @@ export function deriveKeywords(name: string, description: string): string[] {
   return [...new Set(tokenize(`${name} ${description}`))]
 }
 
-function readSkillDir(dir: string, scope: 'global' | 'project'): Skill[] {
+function readSkillDir(dir: string, scope: SkillRoot['scope'], idPrefix = ''): Skill[] {
   let entries: string[]
   try {
     entries = readdirSync(dir)
@@ -75,7 +93,7 @@ function readSkillDir(dir: string, scope: 'global' | 'project'): Skill[] {
     if (data['disable-model-invocation'] === true) continue
 
     skills.push({
-      id: entry,
+      id: `${idPrefix}${entry}`,
       name,
       description,
       scope,
@@ -109,6 +127,7 @@ export function scanUnroutable(dir: string): UnroutableEntry[] {
 
   const unroutable: UnroutableEntry[] = []
   for (const entry of entries) {
+    if (isHostFolder(entry)) continue // Claude Code's own folder, not a skill
     const skillPath = join(dir, entry, 'SKILL.md')
     try {
       if (!statSync(join(dir, entry)).isDirectory()) continue
@@ -129,17 +148,33 @@ export function scanUnroutable(dir: string): UnroutableEntry[] {
   return unroutable
 }
 
+/** Account bucket folders under a synced root (dot entries like .staging skipped). */
+function syncedBuckets(dir: string): string[] {
+  try {
+    return readdirSync(dir)
+      .filter((entry) => !entry.startsWith('.') && statSync(join(dir, entry)).isDirectory())
+      .map((entry) => join(dir, entry))
+  } catch {
+    return [] // no synced skills on this machine
+  }
+}
+
 /**
  * Load real skills from disk. On an id collision the earlier root wins, so with
  * defaultSkillRoots() a personal skill shadows a same-named project skill, matching
- * Claude Code's precedence (personal over project).
+ * Claude Code's precedence (personal over project). Synced skills carry the
+ * anthropic-skills: namespace, so they never collide with local ids.
  */
 export function loadSkills(
   roots = defaultSkillRoots()
 ): Skill[] {
   const byId = new Map<string, Skill>()
   for (const { dir, scope } of roots) {
-    for (const skill of readSkillDir(dir, scope)) {
+    const found =
+      scope === 'synced'
+        ? syncedBuckets(dir).flatMap((bucket) => readSkillDir(bucket, 'synced', `${SYNCED_NAMESPACE}:`))
+        : readSkillDir(dir, scope)
+    for (const skill of found) {
       if (!byId.has(skill.id)) byId.set(skill.id, skill)
     }
   }

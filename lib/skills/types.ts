@@ -7,7 +7,7 @@ export interface Skill {
   id: string
   name: string
   description: string
-  scope: 'global' | 'project' | 'synthetic'
+  scope: 'global' | 'project' | 'synced' | 'synthetic'
   /** Absolute path to the SKILL.md, or a synthetic marker. */
   source: string
   /** Lowercased tokens derived from name+description — the mock judge and the

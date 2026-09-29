@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expandHome, loadConfigFile, stringList } from '../config.js'
-import { loadSkills } from '../skills/loadSkills.js'
+import { loadSkills, type SkillRoot } from '../skills/loadSkills.js'
 import { route } from './route.js'
 import { createMockJudge } from './mockJudge.js'
 import type { JevJudge } from './judge.js'
@@ -22,7 +22,7 @@ export interface RunRouteInput {
   configPath?: string
   skillsDir?: string
   /** Layered roots (e.g. a host's personal + project stores); replaces skillsDir. */
-  skillRoots?: { dir: string; scope: 'global' | 'project' }[]
+  skillRoots?: SkillRoot[]
   judge?: string
   threshold?: number
   suggestFloor?: number
@@ -82,14 +82,14 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
   const cfg = loadConfigFile(input.configPath)
   const cfgNum = (key: string) => (typeof cfg[key] === 'number' ? (cfg[key] as number) : undefined)
 
-  const roots = input.skillRoots ?? [
+  const roots: SkillRoot[] = input.skillRoots ?? [
     {
       dir: expandHome(
         input.skillsDir ??
           process.env.SKILLS_DIR ??
           (typeof cfg.skillsDir === 'string' ? cfg.skillsDir : '~/.agents/skills')
       ),
-      scope: 'global' as const
+      scope: 'global'
     }
   ]
   const skillsDir = roots.map((r) => r.dir).join(', ')
