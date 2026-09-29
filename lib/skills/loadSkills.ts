@@ -39,6 +39,15 @@ export function defaultSkillRoots(cwd = process.cwd()): SkillRoot[] {
   ]
 }
 
+/**
+ * Every skill id the router can judge from `cwd`: the Claude Code layers plus the
+ * route CLI's own `cliDir`, before any exclude list applies. A config entry naming
+ * one of these is live, not stale.
+ */
+export function routableSkillIds(cliDir: string, cwd = process.cwd()): Set<string> {
+  return new Set(loadSkills([...defaultSkillRoots(cwd), { dir: cliDir, scope: 'global' }]).map((s) => s.id))
+}
+
 /** Claude Code's own folders inside a skills root: the synced container and dot-folders like .trash. */
 function isHostFolder(entry: string): boolean {
   return entry === SYNCED_FOLDER || entry.startsWith('.')

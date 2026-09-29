@@ -146,11 +146,16 @@ export function composition(skills: Skill[], excluded: string[]): Composition {
   }
 }
 
-/** Free, static findings: unroutable folders, stale config, duplicates, weak surfaces. */
+/**
+ * Free, static findings: unroutable folders, stale config, duplicates, weak surfaces.
+ * `skills` is the catalog under analysis; `routable` is every id the router can judge
+ * (all hook layers, excluded skills included) — a config entry naming one is live.
+ */
 export function staticFindings(
   skills: Skill[],
   unroutable: UnroutableEntry[],
-  config: DoctorConfig
+  config: DoctorConfig,
+  routable: Iterable<string> = []
 ): { findings: Finding[]; duplicatePairs: Set<string> } {
   const findings: Finding[] = []
 
@@ -169,7 +174,7 @@ export function staticFindings(
     })
   }
 
-  const known = new Set([...skills.map((s) => s.id), ...unroutable.map((u) => u.id)])
+  const known = new Set([...skills.map((s) => s.id), ...routable, ...unroutable.map((u) => u.id)])
   for (const [key, entries] of [
     ['alwaysAllow', config.alwaysAllow],
     ['exclude', config.exclude]

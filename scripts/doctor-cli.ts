@@ -39,7 +39,7 @@ import {
 import type { DoctorConfig, DoctorRecording, Finding, ProbeOutcome } from '../lib/doctor.js'
 import { expandHome, loadConfigFile, stringList } from '../lib/config.js'
 import { createJudgeByName } from '../lib/router/runRoute.js'
-import { loadSkills, scanUnroutable } from '../lib/skills/loadSkills.js'
+import { loadSkills, routableSkillIds, scanUnroutable } from '../lib/skills/loadSkills.js'
 import { DEFAULT_ROUTE_OPTIONS } from '../lib/skills/types.js'
 import type { JevJudge } from '../lib/router/judge.js'
 
@@ -109,7 +109,12 @@ export async function main(argv: string[]): Promise<void> {
   const skills = installed.filter((s) => !excluded.includes(s.id))
   const unroutable = scanUnroutable(skillsDir)
 
-  const { findings: staticF, duplicatePairs } = staticFindings(skills, unroutable, doctorConfig)
+  const { findings: staticF, duplicatePairs } = staticFindings(
+    skills,
+    unroutable,
+    doctorConfig,
+    routableSkillIds(skillsDir)
+  )
   const findings: Finding[] = [...staticF]
 
   // ---- Probe layer -----------------------------------------------------------------
@@ -186,7 +191,10 @@ export async function main(argv: string[]): Promise<void> {
     }
     const { stale, removed } = staleRecordedProbes(recorded, skills)
     if (removed.length > 0) {
-      console.error(`note: skipping probes of uninstalled skills: ${removed.join(', ')}`)
+      const skippedExcluded = removed.filter((id) => excluded.includes(id))
+      const uninstalled = removed.filter((id) => !excluded.includes(id))
+      if (skippedExcluded.length > 0) console.error(`note: skipping probes of excluded skills: ${skippedExcluded.join(', ')}`)
+      if (uninstalled.length > 0) console.error(`note: skipping probes of uninstalled skills: ${uninstalled.join(', ')}`)
       recorded = recorded.filter((o) => !removed.includes(o.skillId))
     }
     if (stale.length > 0) {
