@@ -4517,7 +4517,8 @@ async function runRoute(input) {
   ];
   const skillsDir = roots.map((r) => r.dir).join(", ");
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude));
-  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id));
+  const installed = loadSkills(roots);
+  const skills = installed.filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
   }
@@ -4540,12 +4541,27 @@ async function runRoute(input) {
   return {
     result,
     skillsDir,
+    excluded: installed.filter((s) => exclude.has(s.id)).map((s) => s.id),
     catalogSize: skills.length,
     judge: judge.name,
     invoke: result.selected.map((s) => s.id),
     suggest: result.suggested.map((s) => s.id),
     probabilities
   };
+}
+
+// lib/slash.ts
+function typedSlash(prompt, name) {
+  const text = prompt.toLowerCase();
+  const needle = `/${name.toLowerCase()}`;
+  for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + 1)) {
+    const before = text[at - 1];
+    const after = text[at + needle.length];
+    const opens = before === void 0 || /[\s(["'`]/.test(before);
+    const ends = after === void 0 || !/[a-z0-9:_-]/.test(after);
+    if (opens && ends) return true;
+  }
+  return false;
 }
 
 // hooks/user-prompt-submit.ts
@@ -4591,17 +4607,10 @@ try {
     configPath: existsSync4(projectConfig) ? projectConfig : void 0
   });
   const routerCliMs = Date.now() - routeStart;
-  const promptLower = prompt.toLowerCase();
   const catalog = Object.keys(verdict.probabilities);
-  const typed = (name) => {
-    const at = promptLower.indexOf(`/${name.toLowerCase()}`);
-    if (at === -1) return false;
-    const next = promptLower[at + name.length + 1];
-    return next === void 0 || !/[a-z0-9-]/.test(next);
-  };
   const slashNamed = catalog.filter((id) => {
     const short = id.startsWith(`${SYNCED_NAMESPACE}:`) ? id.slice(SYNCED_NAMESPACE.length + 1) : null;
-    return typed(id) || short !== null && !catalog.includes(short) && typed(short);
+    return typedSlash(prompt, id) || short !== null && !catalog.includes(short) && typedSlash(prompt, short);
   });
   for (const id of slashNamed) {
     if (!verdict.invoke.includes(id)) verdict.invoke.push(id);
@@ -4616,8 +4625,11 @@ try {
       suggest: verdict.suggest,
       prompt,
       ts: Date.now(),
-      // Every skill the router judged: the gate governs these and lets the rest pass.
+      // Every skill the router judged, plus the ones the config excludes: the gate
+      // governs these (excluded skills are ruled out, so it denies them) and lets the
+      // rest pass.
       catalog,
+      excluded: verdict.excluded,
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,

@@ -4,13 +4,15 @@
 // current turn's approved list (written by hooks/user-prompt-submit.ts), turning
 // "please defer to the router" into "off-list invocations do not execute".
 //
-// The gate governs only skills the router judged this turn. A skill it never saw —
+// The gate governs only skills the router judged this turn, plus the installed skills
+// the config excludes (ruled out by the user, so denied). A skill it never saw —
 // bundled, plugin, --add-dir, managed, or one without a description — passes, so
 // the router never blocks what it could not weigh.
 //
 // FAIL-OPEN by design: routing is a policy layer, not a security boundary. No state
 // file, stale state, unparseable input → allow. Also always allowed:
-//   - skills the user explicitly named in their prompt (e.g. typed "/git-commit")
+//   - skills the user typed as a slash command (e.g. "/git-commit"); naming or
+//     describing a skill in prose does not count
 //   - skills in the config's alwaysAllow list (.skillrouter.json in the project
 //     cwd or the home dir) — for process skills that standing instructions require.
 //
@@ -20,6 +22,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { typedSlash } from '../lib/slash.js'
 
 const STATE_DIR = join(tmpdir(), 'jev-skill-router')
 const STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000
@@ -69,24 +72,25 @@ try {
     prompt: string
     ts: number
     catalog?: string[]
+    excluded?: string[]
   }
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow()
 
-  // Resolve the call to a judged id. A synced skill is judged as anthropic-skills:<name>
+  // Resolve the call to a governed id. A synced skill is known as anthropic-skills:<name>
   // but may be invoked by its short name when no local skill holds it. Anything the
-  // router never judged passes (a state file without a catalog predates this rule).
-  const catalog = new Set(state.catalog ?? [])
+  // router neither judged nor excluded passes (a state file without a catalog
+  // predates this rule).
+  const governed = new Set([...(state.catalog ?? []), ...(state.excluded ?? [])])
   const synced = `anthropic-skills:${skill}`
-  const judgedId = catalog.has(skill) ? skill : catalog.has(synced) ? synced : null
+  const judgedId = governed.has(skill) ? skill : governed.has(synced) ? synced : null
   if (!judgedId) allow()
 
   const approved = new Set([...state.invoke, ...state.suggest, ...alwaysAllowList(input.cwd ?? process.cwd())])
-  // The user naming a skill in their own prompt outranks the router. Plugin skills
-  // carry namespaced ids ("ns:name") while the user types the base name ("/name"),
+  // The user slash-invoking a skill outranks the router. Plugin and synced skills
+  // carry namespaced ids ("ns:name") while the user may type the base name ("/name"),
   // so match on both — explicit invocations must always pass.
-  const prompt = state.prompt.toLowerCase()
   const baseName = skill.split(':').pop() ?? skill
-  if (prompt.includes(skill.toLowerCase()) || prompt.includes(baseName.toLowerCase())) allow()
+  if (typedSlash(state.prompt, skill) || typedSlash(state.prompt, baseName)) allow()
   if (approved.has(skill) || approved.has(judgedId)) allow()
 
   deny(

@@ -39,6 +39,8 @@ export interface RunRouteOutput {
   invoke: string[]
   suggest: string[]
   probabilities: Record<string, number>
+  /** Installed skills the config's exclude list kept out of routing. */
+  excluded: string[]
 }
 
 /**
@@ -96,7 +98,8 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
   // The config's exclude list removes skills from routing entirely — the user's way
   // of resolving catalog collisions (see doctor-cli) without uninstalling anything.
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude))
-  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id))
+  const installed = loadSkills(roots)
+  const skills = installed.filter((s) => !exclude.has(s.id))
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`)
   }
@@ -124,6 +127,7 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
   return {
     result,
     skillsDir,
+    excluded: installed.filter((s) => exclude.has(s.id)).map((s) => s.id),
     catalogSize: skills.length,
     judge: judge.name,
     invoke: result.selected.map((s) => s.id),

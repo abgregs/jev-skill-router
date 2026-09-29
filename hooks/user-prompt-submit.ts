@@ -18,6 +18,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runRoute } from '../lib/router/runRoute.js'
 import { defaultSkillRoots, SYNCED_NAMESPACE } from '../lib/skills/loadSkills.js'
+import { typedSlash } from '../lib/slash.js'
 
 export const STATE_DIR = join(tmpdir(), 'jev-skill-router')
 
@@ -80,19 +81,13 @@ try {
   // An explicit slash invocation is a command, not a data point: any catalog skill
   // the user typed as /<id> is promoted into the invoke band with certainty, past
   // the judge's score and the maxSelected cap, so instruction matches enforcement
-  // (the gate already always allows prompt-named skills). A synced skill also answers
-  // to its short name (/pdf runs anthropic-skills:pdf) unless a local skill holds it.
-  const promptLower = prompt.toLowerCase()
+  // (the gate always allows slash-typed skills, by the same rule). A synced skill also
+  // answers to its short name (/pdf runs anthropic-skills:pdf) unless a local skill
+  // holds it.
   const catalog = Object.keys(verdict.probabilities)
-  const typed = (name: string): boolean => {
-    const at = promptLower.indexOf(`/${name.toLowerCase()}`)
-    if (at === -1) return false
-    const next = promptLower[at + name.length + 1]
-    return next === undefined || !/[a-z0-9-]/.test(next)
-  }
   const slashNamed = catalog.filter((id) => {
     const short = id.startsWith(`${SYNCED_NAMESPACE}:`) ? id.slice(SYNCED_NAMESPACE.length + 1) : null
-    return typed(id) || (short !== null && !catalog.includes(short) && typed(short))
+    return typedSlash(prompt, id) || (short !== null && !catalog.includes(short) && typedSlash(prompt, short))
   })
   for (const id of slashNamed) {
     if (!verdict.invoke.includes(id)) verdict.invoke.push(id)
@@ -108,8 +103,11 @@ try {
       suggest: verdict.suggest,
       prompt,
       ts: Date.now(),
-      // Every skill the router judged: the gate governs these and lets the rest pass.
+      // Every skill the router judged, plus the ones the config excludes: the gate
+      // governs these (excluded skills are ruled out, so it denies them) and lets the
+      // rest pass.
       catalog,
+      excluded: verdict.excluded,
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,

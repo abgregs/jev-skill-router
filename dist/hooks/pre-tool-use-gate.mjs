@@ -5,6 +5,22 @@ import { createRequire as __cr } from 'node:module'; const require = __cr(import
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+
+// lib/slash.ts
+function typedSlash(prompt, name) {
+  const text = prompt.toLowerCase();
+  const needle = `/${name.toLowerCase()}`;
+  for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + 1)) {
+    const before = text[at - 1];
+    const after = text[at + needle.length];
+    const opens = before === void 0 || /[\s(["'`]/.test(before);
+    const ends = after === void 0 || !/[a-z0-9:_-]/.test(after);
+    if (opens && ends) return true;
+  }
+  return false;
+}
+
+// hooks/pre-tool-use-gate.ts
 var STATE_DIR = join(tmpdir(), "jev-skill-router");
 var STATE_MAX_AGE_MS = 24 * 60 * 60 * 1e3;
 function allow() {
@@ -43,14 +59,13 @@ try {
   if (!existsSync(statePath)) allow();
   const state = JSON.parse(readFileSync(statePath, "utf8"));
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow();
-  const catalog = new Set(state.catalog ?? []);
+  const governed = /* @__PURE__ */ new Set([...state.catalog ?? [], ...state.excluded ?? []]);
   const synced = `anthropic-skills:${skill}`;
-  const judgedId = catalog.has(skill) ? skill : catalog.has(synced) ? synced : null;
+  const judgedId = governed.has(skill) ? skill : governed.has(synced) ? synced : null;
   if (!judgedId) allow();
   const approved = /* @__PURE__ */ new Set([...state.invoke, ...state.suggest, ...alwaysAllowList(input.cwd ?? process.cwd())]);
-  const prompt = state.prompt.toLowerCase();
   const baseName = skill.split(":").pop() ?? skill;
-  if (prompt.includes(skill.toLowerCase()) || prompt.includes(baseName.toLowerCase())) allow();
+  if (typedSlash(state.prompt, skill) || typedSlash(state.prompt, baseName)) allow();
   if (approved.has(skill) || approved.has(judgedId)) allow();
   deny(
     `Skill routing gate: "${skill}" is not on this turn's approved list. Invoke: [${state.invoke.join(", ") || "none"}]. Suggested: [${state.suggest.join(", ") || "none"}]. Use an approved skill, or ask the user if you believe this skill is needed.`

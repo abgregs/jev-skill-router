@@ -4579,7 +4579,8 @@ async function runRoute(input) {
   ];
   const skillsDir = roots.map((r) => r.dir).join(", ");
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude));
-  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id));
+  const installed = loadSkills(roots);
+  const skills = installed.filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
   }
@@ -4602,6 +4603,7 @@ async function runRoute(input) {
   return {
     result,
     skillsDir,
+    excluded: installed.filter((s) => exclude.has(s.id)).map((s) => s.id),
     catalogSize: skills.length,
     judge: judge.name,
     invoke: result.selected.map((s) => s.id),
