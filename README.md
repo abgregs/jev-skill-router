@@ -74,7 +74,7 @@ lib/router/   route (shard + fan out + policy) · judge (interface) · mockJudge
 lib/doctor.ts catalog doctor: static findings + probe-driven overlap detection
 fixtures/     labeled sessions with ground-truth skills · recordings/ (captured real-Jev runs)
 bench/        scale benchmark over the 1,064-skill synthetic catalog
-scripts/      cli — the one bin (route · doctor · install claude) · build — esbuild → dist/
+scripts/      cli — the one bin (route · doctor · install claude · config) · build — esbuild → dist/
               inspect — pure-code smoke test · eval-capture — real-Jev evals
 dist/         committed dependency-free bundles: the npm bin + the plugin's hooks
 web/          the recorded demo — a static page replaying captured real-Jev runs
@@ -137,6 +137,19 @@ config file is `--config <path>`, else `.skillrouter.json` in the cwd, else
 `~/.skillrouter.json` — any subset of `skillsDir`, `judge`, `threshold`, `suggestFloor`,
 `maxSelected`, `shardSize`, `top`, `exclude` (skill ids removed from routing entirely — the
 config expression of "I picked a favorite"), and the hook gate's `alwaysAllow`.
+
+Edit the two lists with `config` instead of by hand (from a clone: `node dist/cli.mjs
+config …` or `npm run config -- …`). `add` checks each id against the catalog the router
+judges and writes nothing on a miss, so `exclude add docs` answers "did you mean
+anthropic-skills:docs?"; `--project` targets `./.skillrouter.json`; `show` prints the
+file in effect where you run it, flagging entries that name no routed skill.
+
+```bash
+jev-skill-router config exclude add anthropic-skills:docs
+jev-skill-router config allow add anthropic-skills:pdf --project
+jev-skill-router config exclude remove brief debrief
+jev-skill-router config show
+```
 
 **`--json`** emits one machine-readable object (`{invoke, suggest, probabilities, ...}`) for
 host adapters — e.g. a Claude Code `UserPromptSubmit` hook that injects the verdict each turn.
@@ -241,6 +254,8 @@ pdf skill, the gate denies it. List the skill in `alwaysAllow` and that call pas
 ```json
 { "alwaysAllow": ["anthropic-skills:pdf", "git-commit"] }
 ```
+
+or `jev-skill-router config allow add anthropic-skills:pdf git-commit` (see Config layering).
 
 Use the routed id. Synced skills are `anthropic-skills:<name>`, and that entry passes a
 call by either the full name or the short `pdf`; a bare `"pdf"` only matches calls made

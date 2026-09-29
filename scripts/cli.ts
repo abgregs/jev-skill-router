@@ -13,6 +13,7 @@ Commands:
   route <query>     route a query against the installed skill catalog
   doctor            catalog health report (static findings + routing probes)
   install claude    register the router's hooks in Claude Code settings
+  config            edit exclude / alwaysAllow in .skillrouter.json (config show)
 
 Run \`jev-skill-router <command> --help\` for a command's flags.`
 
@@ -32,6 +33,9 @@ switch (cmd) {
     break
   case 'install':
     await (await import('./install-cli.js')).main(rest)
+    break
+  case 'config':
+    await (await import('./config-cli.js')).main(rest)
     break
   case '--version':
   case '-v':

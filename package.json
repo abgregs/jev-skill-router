@@ -14,6 +14,7 @@
     "bench": "tsx bench/run.ts",
     "route": "tsx scripts/cli.ts route",
     "doctor": "tsx scripts/cli.ts doctor",
+    "config": "tsx scripts/cli.ts config",
     "route:live": "tsx scripts/route-live.ts",
     "eval:capture": "tsx scripts/eval-capture.ts",
     "bench:session": "tsx scripts/session-bench.ts",

@@ -3592,6 +3592,9 @@ function defaultSkillRoots(cwd = process.cwd()) {
     { dir: join(homedir2(), ".claude", "skills", SYNCED_FOLDER), scope: "synced" }
   ];
 }
+function routableSkillIds(cliDir, cwd = process.cwd()) {
+  return new Set(loadSkills([...defaultSkillRoots(cwd), { dir: cliDir, scope: "global" }]).map((s) => s.id));
+}
 function isHostFolder(entry) {
   return entry === SYNCED_FOLDER || entry.startsWith(".");
 }
@@ -3885,7 +3888,7 @@ var init_dist = __esm({
       #parseResponse;
       #parsed;
       constructor(responsePromise, parseResponse) {
-        super((resolve5) => resolve5(void 0));
+        super((resolve6) => resolve6(void 0));
         this.#responsePromise = responsePromise;
         this.#parseResponse = parseResponse;
       }
@@ -3977,7 +3980,7 @@ var init_dist = __esm({
       const exponential = Math.min(policy.backoffInitialMs * 2 ** attempt, policy.backoffMaxMs);
       return Math.round(exponential * (1 - random() * policy.backoffJitter));
     };
-    sleep = (ms, signal) => new Promise((resolve5, reject) => {
+    sleep = (ms, signal) => new Promise((resolve6, reject) => {
       if (signal?.aborted) return reject(signal.reason);
       const onAbort = () => {
         clearTimeout(timer);
@@ -3985,7 +3988,7 @@ var init_dist = __esm({
       };
       const timer = setTimeout(() => {
         signal?.removeEventListener("abort", onAbort);
-        resolve5();
+        resolve6();
       }, ms);
       signal?.addEventListener("abort", onAbort, { once: true });
     });
@@ -4782,7 +4785,7 @@ function composition(skills, excluded) {
     medianKeywords: counts[Math.floor(counts.length / 2)] ?? 0
   };
 }
-function staticFindings(skills, unroutable, config) {
+function staticFindings(skills, unroutable, config, routable = []) {
   const findings = [];
   for (const u of unroutable) {
     findings.push({
@@ -4792,7 +4795,7 @@ function staticFindings(skills, unroutable, config) {
       action: u.reason === "no-skill-md" ? "add a SKILL.md with a description, or remove the folder if it is not a skill" : "add a description \u2014 the router skips skills without one (Claude Code falls back to the first line of the body)"
     });
   }
-  const known = /* @__PURE__ */ new Set([...skills.map((s) => s.id), ...unroutable.map((u) => u.id)]);
+  const known = /* @__PURE__ */ new Set([...skills.map((s) => s.id), ...routable, ...unroutable.map((u) => u.id)]);
   for (const [key, entries] of [
     ["alwaysAllow", config.alwaysAllow],
     ["exclude", config.exclude]
@@ -5068,7 +5071,12 @@ async function main2(argv) {
   const excluded = installed.filter((s) => doctorConfig.exclude.includes(s.id)).map((s) => s.id);
   const skills = installed.filter((s) => !excluded.includes(s.id));
   const unroutable = scanUnroutable(skillsDir);
-  const { findings: staticF, duplicatePairs } = staticFindings(skills, unroutable, doctorConfig);
+  const { findings: staticF, duplicatePairs } = staticFindings(
+    skills,
+    unroutable,
+    doctorConfig,
+    routableSkillIds(skillsDir)
+  );
   const findings = [...staticF];
   const probing = !bools.has("no-probe");
   const replayPath = opts.replay ? expandHome(opts.replay) : void 0;
@@ -5134,7 +5142,10 @@ async function main2(argv) {
     }
     const { stale, removed } = staleRecordedProbes(recorded, skills);
     if (removed.length > 0) {
-      console.error(`note: skipping probes of uninstalled skills: ${removed.join(", ")}`);
+      const skippedExcluded = removed.filter((id) => excluded.includes(id));
+      const uninstalled = removed.filter((id) => !excluded.includes(id));
+      if (skippedExcluded.length > 0) console.error(`note: skipping probes of excluded skills: ${skippedExcluded.join(", ")}`);
+      if (uninstalled.length > 0) console.error(`note: skipping probes of uninstalled skills: ${uninstalled.join(", ")}`);
       recorded = recorded.filter((o) => !removed.includes(o.skillId));
     }
     if (stale.length > 0) {
@@ -5341,9 +5352,107 @@ var init_install_cli = __esm({
   }
 });
 
+// scripts/config-cli.ts
+var config_cli_exports = {};
+__export(config_cli_exports, {
+  main: () => main4
+});
+import { existsSync as existsSync6, readFileSync as readFileSync5, writeFileSync as writeFileSync3 } from "node:fs";
+import { homedir as homedir4 } from "node:os";
+import { join as join4, resolve as resolve5 } from "node:path";
+function readConfig(path) {
+  if (!existsSync6(path)) return {};
+  try {
+    return JSON.parse(readFileSync5(path, "utf8"));
+  } catch {
+    console.error(`${path} is not valid JSON \u2014 fix it first; nothing was written.`);
+    process.exit(1);
+  }
+}
+function routableIds(cfg) {
+  return routableSkillIds(
+    expandHome(process.env.SKILLS_DIR ?? (typeof cfg.skillsDir === "string" ? cfg.skillsDir : "~/.agents/skills"))
+  );
+}
+function show() {
+  const inEffect = existsSync6(projectFile) ? projectFile : existsSync6(homeFile) ? homeFile : null;
+  if (!inEffect) {
+    console.log(`No .skillrouter.json here or at ${homeFile} \u2014 routing uses the defaults.`);
+    return;
+  }
+  const cfg = readConfig(inEffect);
+  const known = routableIds(cfg);
+  console.log(`In effect here: ${inEffect}`);
+  if (inEffect === projectFile && existsSync6(homeFile)) {
+    console.log(`(${homeFile} is ignored in this project \u2014 the project file replaces it)`);
+  }
+  for (const key of Object.values(LISTS)) {
+    const shown = stringList(cfg[key]).map((id) => known.has(id) ? id : `${id} (not in the routed catalog \u2014 no effect)`);
+    console.log(`  ${key}: ${shown.length ? shown.join(", ") : "(empty)"}`);
+  }
+}
+async function main4(argv) {
+  const bools = new Set(argv.filter((a) => a.startsWith("--")).map((a) => a.slice(2)));
+  const [list, action, ...ids] = argv.filter((a) => !a.startsWith("--"));
+  if (bools.has("help")) {
+    console.log(USAGE4);
+    return;
+  }
+  if (list === "show") {
+    show();
+    return;
+  }
+  if (!(list === "exclude" || list === "allow") || !(action === "add" || action === "remove") || ids.length === 0) {
+    console.error(USAGE4);
+    process.exit(1);
+  }
+  const key = LISTS[list];
+  const path = bools.has("project") ? projectFile : homeFile;
+  const created = !existsSync6(path);
+  const cfg = readConfig(path);
+  const current = stringList(cfg[key]);
+  if (action === "add") {
+    const known = routableIds(cfg);
+    const problems = ids.filter((id) => !known.has(id)).map(
+      (id) => known.has(`${SYNCED_NAMESPACE}:${id}`) ? `${id}: not a routed id \u2014 did you mean ${SYNCED_NAMESPACE}:${id}?` : `${id}: not in the routed catalog (personal, project, or synced skills) \u2014 the router never judges it, so the entry would have no effect`
+    );
+    if (problems.length > 0) {
+      console.error(`${problems.join("\n")}
+Nothing was written.`);
+      process.exit(1);
+    }
+  }
+  const next = action === "add" ? [...current, ...ids.filter((id) => !current.includes(id))] : current.filter((id) => !ids.includes(id));
+  const unchanged = action === "add" ? ids.filter((id) => current.includes(id)) : ids.filter((id) => !current.includes(id));
+  cfg[key] = next;
+  writeFileSync3(path, JSON.stringify(cfg, null, 2) + "\n");
+  console.log(`${key} in ${path}: ${next.length ? next.join(", ") : "(empty)"}`);
+  if (unchanged.length > 0) {
+    console.log(`(${action === "add" ? "already present" : "not present"}: ${unchanged.join(", ")})`);
+  }
+  if (path === homeFile && existsSync6(projectFile)) {
+    console.log(`Note: ${projectFile} exists here and replaces ${homeFile} in this project, so this change doesn't apply here.`);
+  }
+  if (path === projectFile && created && existsSync6(homeFile)) {
+    console.log(`Note: this new project file replaces ${homeFile} in this project \u2014 copy over any settings you still want (judge, alwaysAllow, \u2026).`);
+  }
+}
+var USAGE4, LISTS, homeFile, projectFile;
+var init_config_cli = __esm({
+  "scripts/config-cli.ts"() {
+    "use strict";
+    init_config();
+    init_loadSkills();
+    USAGE4 = "Usage: jev-skill-router config <exclude|allow> <add|remove> <skill-id...> [--project]\n       jev-skill-router config show";
+    LISTS = { exclude: "exclude", allow: "alwaysAllow" };
+    homeFile = join4(homedir4(), ".skillrouter.json");
+    projectFile = resolve5(".skillrouter.json");
+  }
+});
+
 // scripts/cli.ts
-import { readFileSync as readFileSync5 } from "node:fs";
-import { dirname as dirname5, join as join4 } from "node:path";
+import { readFileSync as readFileSync6 } from "node:fs";
+import { dirname as dirname5, join as join5 } from "node:path";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 var HELP = `jev-skill-router \u2014 per-turn semantic skill routing for coding agents
 
@@ -5353,11 +5462,12 @@ Commands:
   route <query>     route a query against the installed skill catalog
   doctor            catalog health report (static findings + routing probes)
   install claude    register the router's hooks in Claude Code settings
+  config            edit exclude / alwaysAllow in .skillrouter.json (config show)
 
 Run \`jev-skill-router <command> --help\` for a command's flags.`;
 function version() {
-  const pkgPath = join4(dirname5(fileURLToPath3(import.meta.url)), "..", "package.json");
-  return JSON.parse(readFileSync5(pkgPath, "utf8")).version;
+  const pkgPath = join5(dirname5(fileURLToPath3(import.meta.url)), "..", "package.json");
+  return JSON.parse(readFileSync6(pkgPath, "utf8")).version;
 }
 var [cmd, ...rest] = process.argv.slice(2);
 switch (cmd) {
@@ -5369,6 +5479,9 @@ switch (cmd) {
     break;
   case "install":
     await (await Promise.resolve().then(() => (init_install_cli(), install_cli_exports))).main(rest);
+    break;
+  case "config":
+    await (await Promise.resolve().then(() => (init_config_cli(), config_cli_exports))).main(rest);
     break;
   case "--version":
   case "-v":
