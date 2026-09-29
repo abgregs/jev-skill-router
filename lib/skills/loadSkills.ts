@@ -1,14 +1,28 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import matter from 'gray-matter'
 import type { Skill } from './types.js'
 
-/** Default skill roots, in Claude Code precedence order (global, then project). */
+/**
+ * Default skill roots, in Claude Code precedence order: personal first, then the
+ * project's .claude/skills in the start directory and every parent up to the
+ * repository root (the nearest directory holding .git; a worktree's .git file
+ * counts). Outside a repository only the start directory is searched.
+ */
 export function defaultSkillRoots(cwd = process.cwd()): { dir: string; scope: 'global' | 'project' }[] {
+  const projectDirs: string[] = []
+  for (let dir = resolve(cwd); ; dir = dirname(dir)) {
+    projectDirs.push(dir)
+    if (existsSync(join(dir, '.git'))) break
+    if (dirname(dir) === dir) {
+      projectDirs.splice(1) // no repository root above: the start directory only
+      break
+    }
+  }
   return [
     { dir: join(homedir(), '.claude', 'skills'), scope: 'global' },
-    { dir: join(cwd, '.claude', 'skills'), scope: 'project' }
+    ...projectDirs.map((dir) => ({ dir: join(dir, '.claude', 'skills'), scope: 'project' as const }))
   ]
 }
 
@@ -116,8 +130,9 @@ export function scanUnroutable(dir: string): UnroutableEntry[] {
 }
 
 /**
- * Load real skills from disk. Later roots (project) override earlier roots (global)
- * on id collision, matching Claude Code's precedence.
+ * Load real skills from disk. On an id collision the earlier root wins, so with
+ * defaultSkillRoots() a personal skill shadows a same-named project skill, matching
+ * Claude Code's precedence (personal over project).
  */
 export function loadSkills(
   roots = defaultSkillRoots()
@@ -125,7 +140,7 @@ export function loadSkills(
   const byId = new Map<string, Skill>()
   for (const { dir, scope } of roots) {
     for (const skill of readSkillDir(dir, scope)) {
-      byId.set(skill.id, skill)
+      if (!byId.has(skill.id)) byId.set(skill.id, skill)
     }
   }
   return [...byId.values()]
