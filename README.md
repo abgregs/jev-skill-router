@@ -20,12 +20,19 @@ In Claude Code, two commands (the repo is its own plugin marketplace):
 
 That registers two hooks. Every prompt is routed against your installed skills *before*
 the model sees the turn, and the verdict is injected into context ("Invoke: … / Also
-relevant: …"); a gate then holds the session to that list — fail-open, and any skill
-you slash-invoke yourself always passes. By default routing runs on the free,
-deterministic **mock judge**: no API key, no spend, and you can watch the whole
-pipeline work. Put `{"judge": "jev"}` in your project's `.skillrouter.json` (key in the
-environment) to route with real Jev. Details, other hosts, and uninstall: see the
-Claude Code hooks section below.
+relevant: …"); a gate then holds the routed skills to that list — fail-open, and skills
+the router never judged pass untouched.
+
+**To be sure a skill runs, slash-invoke it.** Typing `/git-commit` always gets it
+through: the router adds it to the verdict and the gate lets it pass. Asking in words
+("use the git-commit skill") is not the same. The router reads your prompt, so asking can
+raise the skill's score, but the skill runs only if the verdict carries it or it's in
+your `alwaysAllow` list; otherwise the gate turns the model's attempt away.
+
+By default routing runs on the free, deterministic **mock judge**: no API key, no spend,
+and you can watch the whole pipeline work. Put `{"judge": "jev"}` in your project's
+`.skillrouter.json` (key in the environment) to route with real Jev. Details, other
+hosts, and uninstall: see the Claude Code hooks section below.
 
 Not published to npm — install as the plugin above, or from a clone
 (`npm install && npm run build`, then `node dist/cli.mjs install claude`). Node 20+.
@@ -192,7 +199,7 @@ The boundary, stated honestly: cross-author umbrella overlap can't be auto-fixed
 `impeccable` and the review-oriented skills all legitimately claim broad territory. The
 doctor surfaces the collision with measured probabilities; the resolution is the user
 picking a favorite, which is exactly what `exclude` expresses (honored by `route-cli` and
-therefore by the hooks).
+therefore by the hooks; the gate denies excluded skills unless you slash-invoke them).
 
 ### Claude Code hooks — take skill selection off the main agent (`hooks/`)
 
@@ -207,14 +214,14 @@ Two hooks make the router authoritative in a Claude Code session:
   matches what the user commanded. Silent on conversational turns and on any error — it
   never breaks a turn.
 - **`hooks/pre-tool-use-gate.ts`** (enforcement) — matched on the `Skill` tool; denies
-  invocations of routed skills that are not on the turn's approved list, so the agent's
-  native instinct to pick its own skills has no effect. **Fail-open** (no/stale state →
+  invocations of routed skills that are not on the turn's approved list, and of skills
+  the config excludes, so the agent's native instinct to pick its own skills has no effect. **Fail-open** (no/stale state →
   allow): routing is a policy layer, not a security boundary. Always allowed: skills the
-  user named in their prompt (typed `/git-commit` etc. — matched on the skill id and,
-  for plugin-namespaced ids like `ns:name`, the base name, so explicit slash invocations
-  always pass), the config's `alwaysAllow` list, and any skill the router did not judge.
-  One documented limit: *describing* a skill in free text without naming it does not
-  trigger the override (name it, or let the verdict carry it).
+  user typed as a slash command (`/git-commit`, `/anthropic-skills:pdf`, or the base
+  `/name` of a namespaced skill), the config's `alwaysAllow` list, and any skill the
+  router did not judge. Only a slash command counts as your say-so: a skill you ask for
+  in prose ("use the git-commit skill", "update our docs") runs only if the verdict
+  carries it or it's in `alwaysAllow`; otherwise the gate denies the model's call.
 
 **What gets routed.** The routed catalog is what Claude Code loads at session start:
 personal `~/.claude/skills`, the project's `.claude/skills` from the session directory up
@@ -223,6 +230,28 @@ Code), and skills synced from claude.ai (`~/.claude/skills/synced/`), routed as
 `anthropic-skills:<name>`. Skills outside it — bundled, plugin-provided, nested below the
 session directory, from `--add-dir`, managed, or without a `description` — are never
 judged, and the gate lets them through untouched.
+
+**Keeping a routed skill always callable (`alwaysAllow`).** The gate denies a routed
+skill that missed the turn's verdict, even when the need only shows up mid-turn. Ask
+"pull the revenue table out of the board deck in `./reports/` into a spreadsheet" and the
+verdict may carry `anthropic-skills:xlsx` but not `anthropic-skills:pdf`, because nothing
+in the prompt says PDF. When the agent opens the deck, finds a PDF, and reaches for the
+pdf skill, the gate denies it. List the skill in `alwaysAllow` and that call passes:
+
+```json
+{ "alwaysAllow": ["anthropic-skills:pdf", "git-commit"] }
+```
+
+Use the routed id. Synced skills are `anthropic-skills:<name>`, and that entry passes a
+call by either the full name or the short `pdf`; a bare `"pdf"` only matches calls made
+by the short name, and names your local `pdf` skill if you have one. `alwaysAllow` only
+unblocks: it never adds the skill to the verdict or tells the agent to use it, and the
+router still judges it every turn. What you give up is enforcement for that skill: the
+agent can load it on turns that don't need it, spending context. It fits utility skills
+that act on file types a prompt may not name, and process skills your standing
+instructions require (`git-commit` above). The gate reads the first config it finds —
+the project's `.skillrouter.json`, else `~/.skillrouter.json` — so a project file
+replaces your home list rather than adding to it.
 
 **Install — the plugin (recommended).** The repo is a Claude Code plugin and its own
 marketplace; the hooks ship as committed, dependency-free bundles (`dist/`), so there is
@@ -320,7 +349,7 @@ Two consequences. **An empty invoke list with populated suggests is a healthy ve
 shape**: the model works the task normally and retains sanctioned access to the whole
 suggest band (the gate approves it), pulling in a suggestion exactly when needed — this
 is the router's designed channel for needs that only emerge mid-turn. The shape to watch
-is the *fully* empty verdict, where the gate denies all unlisted skills; that regime is
+is the *fully* empty verdict, where the gate denies every routed skill; that regime is
 where fail-open policy matters. And practically: `threshold`/`suggestFloor` don't just
 tune what gets selected — they tune **how imperatively the model is addressed** about
 each skill, which is a control surface stock skill selection doesn't have at all.
