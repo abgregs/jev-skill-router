@@ -1,0 +1,13 @@
+{
+  "name": "jev",
+  "description": "Jev-powered tooling for coding agents: semantic skill routing as a per-turn control plane.",
+  "owner": { "name": "Austin", "email": "18180452+abgregs@users.noreply.github.com" },
+  "plugins": [
+    {
+      "name": "jev-skill-router",
+      "source": ".",
+      "description": "Per-turn semantic skill routing: a Jev-powered control plane that decides which skills to invoke each turn, before the model starts thinking.",
+      "version": "0.1.0"
+    }
+  ]
+}
