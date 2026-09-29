@@ -1,0 +1,814 @@
+/* The Living Technical Report — tokens per DESIGN.md (all pairs contrast-measured). */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('fonts/archivo-var-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('fonts/courier-prime-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('fonts/courier-prime-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  /* primitives — paper, ink, chart-pen red, drafting blue */
+  --paper-0: oklch(0.975 0.006 90);
+  --paper-1: oklch(0.95 0.008 90);
+  --paper-2: oklch(0.915 0.01 90);
+  --rule-faint: oklch(0.86 0.01 90);
+  --rule-mid: oklch(0.64 0.014 90);
+  --ink-ghost: oklch(0.53 0.014 80);
+  --ink-2: oklch(0.46 0.018 80);
+  --ink: oklch(0.25 0.02 80);
+  --red-solid: oklch(0.52 0.18 32);
+  --red-deep: oklch(0.44 0.16 32);
+  --red-wash: oklch(0.94 0.028 32);
+  --blue: oklch(0.43 0.095 255);
+  --blue-wash: oklch(0.945 0.018 255);
+
+  /* semantic — the only tier components use */
+  --color-bg-page: var(--paper-0);
+  --color-bg-figure: var(--paper-1);
+  --color-bg-hover: var(--paper-2);
+  --color-rule: var(--rule-faint);
+  --color-rule-strong: var(--rule-mid);
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-2);
+  --color-text-ghost: var(--ink-ghost);
+  --color-threshold: var(--red-solid);
+  --color-invoke-ink: var(--ink);
+  --color-invoke-wash: var(--paper-2);
+  --color-verify-ink: var(--red-deep);
+  --color-verify-wash: var(--red-wash);
+  --color-annotation: var(--blue);
+  --color-annotation-wash: var(--blue-wash);
+
+  --sans: 'Archivo', system-ui, sans-serif;
+  --mono: 'Courier Prime', ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--color-bg-page); }
+
+body {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--color-invoke-wash); color: var(--color-invoke-ink); }
+
+a { color: var(--color-annotation); text-underline-offset: 3px; }
+
+/* prose rag: pretty wrapping everywhere sentences wrap. The 68ch measure stays —
+   long lines, not white space, are the readability cost at this column width */
+.figure-note,
+.figure-legend,
+.annotation p,
+.fixture-type,
+.tkey-note,
+.run-desc,
+.abstained,
+.doctor-evidence,
+.doctor-action,
+.terminal-annot,
+.colophon p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-annotation);
+  outline-offset: 2px;
+}
+
+.report {
+  /* 960px content inside 24px pads — the contract's full-bleed figure width;
+     prose blocks keep their own 68ch measure */
+  max-width: 1008px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+}
+
+/* ---- masthead ---- */
+
+/* no rule after the opener: a plain vertical gap hands off to the nav */
+.masthead { margin-bottom: 40px; }
+.masthead-series {
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.masthead-title {
+  margin: 0 0 16px;
+  font-size: clamp(28px, 4.5vw, 40px);
+  font-weight: 600;
+  font-stretch: 125%;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.notation { font-family: var(--mono); font-size: 0.92em; }
+.receipt {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ---- figures ---- */
+
+.figure {
+  margin: 0 0 56px;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-bg-figure);
+}
+.figure-head {
+  display: flex;
+  flex-wrap: wrap; /* chrome drops below rather than strangling the subtitle */
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-rule-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* caps are scoped to the short title — never the whole head row */
+.figure-title {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex: none;
+}
+/* the title-block date field: a caps label and a mono date on the head's right edge */
+.figure-stamp {
+  margin-left: auto;
+  flex: none;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.stamp-label {
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+.figure-stamp time {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.figure-note {
+  margin: 14px 16px 0;
+  max-width: 68ch;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.figure-legend {
+  margin: 0 16px 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+.figure-legend li + li { margin-top: 3px; }
+
+/* ---- fixture tabs ---- */
+
+.fixture-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px 0;
+}
+.tab {
+  appearance: none;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover { background: var(--color-bg-hover); }
+  /* the selected tab keeps its inverted scheme: paper text needs an ink ground */
+  .tab[aria-selected='true']:hover {
+    background: var(--color-text-secondary);
+    border-color: var(--color-text-secondary);
+  }
+}
+.tab:active { transform: scale(0.97); }
+.tab[aria-selected='true'] {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-bg-page);
+}
+
+.query {
+  margin: 14px 16px 0;
+  padding: 10px 14px;
+  border-left: 1px solid var(--color-rule-strong);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+.query::before { content: '» '; color: var(--color-text-ghost); }
+
+/* the fixture-type label: a caps tag plus its defining sentence, above the rows */
+.fixture-type {
+  margin: 12px 16px 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+.type-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 3px 8px;
+  border: 1px solid var(--color-rule-strong);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+/* ---- the run table ---- */
+
+.run-table { padding: 14px 16px 4px; }
+
+.run-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr 52px 72px;
+  gap: 12px;
+  align-items: center;
+  padding: 3px 0;
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.run-row + .run-row,
+.run-desc + .run-row { border-top: 1px dotted var(--color-rule); }
+
+.run-name {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  /* the name truncates in its own span; marks and rank sit outside it and never clip */
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  color: var(--color-text-ghost);
+}
+.run-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.run-name .run-rank,
+.run-name .run-truth,
+.run-name .run-verify { flex: none; }
+@media (hover: hover) and (pointer: fine) {
+  .run-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
+.run-rank { color: var(--color-text-ghost); font-weight: 400; }
+.run-desc {
+  margin: 0 0 4px;
+  padding: 2px 0 4px 12px;
+  border-left: 1px solid var(--color-rule);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+.run-bar { position: relative; height: 12px; }
+.run-bar-ink {
+  position: absolute;
+  inset: 2px auto 2px 0;
+  background: var(--color-text-ghost);
+  min-width: 1px;
+}
+/* Policy guidelines: continuous vertical rules spanning the whole table, identical
+   in weight — suggest in gray, invoke in the grader's red. Placed by JS (placeGuides),
+   never per-row segments. */
+.tablewrap { position: relative; }
+.guide {
+  position: absolute;
+  width: 1.5px;
+  pointer-events: none;
+}
+.guide-suggest { background: var(--color-rule-strong); }
+.guide-invoke { background: var(--color-threshold); }
+.run-p { text-align: right; color: var(--color-text-ghost); }
+.run-band {
+  font-size: 11px;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+.run-truth { color: var(--color-annotation); }
+
+.run-row.is-suggest .run-name,
+.run-row.is-suggest .run-p,
+.run-row.is-suggest .run-band { color: var(--color-text-secondary); }
+.run-row.is-suggest .run-bar-ink { background: var(--color-text-secondary); }
+
+/* invoke = the heaviest ink: solid black on a paper wash */
+.run-row.is-invoke {
+  background: var(--color-invoke-wash);
+  margin: 0 -8px;
+  padding: 3px 8px;
+}
+.run-row.is-invoke .run-name,
+.run-row.is-invoke .run-p,
+.run-row.is-invoke .run-band { color: var(--color-invoke-ink); font-weight: 700; }
+.run-row.is-invoke .run-band { font-weight: 500; }
+.run-row.is-invoke .run-bar-ink { background: var(--color-invoke-ink); }
+
+/* red = the grader's pen: a missed truth or a caught decoy */
+.run-row.is-missed .run-name,
+.run-row.is-missed .run-p,
+.run-row.is-missed .run-band,
+.run-row.is-decoy .run-name,
+.run-row.is-decoy .run-p,
+.run-row.is-decoy .run-band { color: var(--color-verify-ink); }
+.run-row.is-missed .run-bar-ink,
+.run-row.is-decoy .run-bar-ink { background: var(--color-verify-ink); }
+.run-row.is-missed,
+.run-row.is-decoy {
+  background: var(--color-verify-wash);
+  margin: 0 -8px;
+  padding: 3px 8px;
+}
+.run-verify { color: var(--color-verify-ink); }
+
+.run-more {
+  margin: 6px 0 10px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--color-text-ghost);
+}
+
+.abstained {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-rule-strong);
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+/* the caps live in a short leading tag, never in the sentence */
+.abstained::before {
+  content: attr(data-tag);
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+/* ---- the threshold key: the chart's two cuts as values, in the guides' colors ---- */
+
+.threshold-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  margin: 4px 16px 0;
+}
+.tkey { display: inline-flex; align-items: center; gap: 8px; }
+.tkey-rule { width: 1.5px; height: 16px; }
+.tkey-suggest .tkey-rule { background: var(--color-rule-strong); }
+.tkey-invoke .tkey-rule { background: var(--color-threshold); }
+.tkey-band {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.tkey-val { font-family: var(--mono); font-size: 14px; color: var(--color-text-secondary); }
+.tkey-invoke .tkey-band,
+.tkey-invoke .tkey-val { color: var(--color-threshold); }
+.tkey-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+
+/* ---- responsive ---- */
+
+@media (max-width: 640px) {
+  .report { padding: 40px 16px 64px; }
+  /* bands are first-class: the bar compresses before the label goes */
+  .run-row { grid-template-columns: minmax(90px, 130px) 1fr 42px 56px; gap: 8px; font-size: 13px; }
+  .run-band { font-size: 10px; }
+}
+
+/* ---- colophon ---- */
+
+.colophon {
+  border-top: 1px solid var(--color-rule-strong);
+  padding-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+
+/* ---- Fig. 0: the mechanism ---- */
+
+.mech { padding: 4px 16px 8px; }
+.mech-ms {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--color-threshold);
+  min-width: 6ch;
+  text-align: right;
+}
+.mech .query { margin-left: 0; margin-right: 0; }
+.mech .tablewrap .run-table { padding-left: 0; padding-right: 0; }
+.mech-verdict {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-bg-page);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--color-text-primary);
+}
+/* sits inside .mech, directly under the chart it controls */
+.mech-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 2px;
+}
+
+/* exactly one solid-fill control per view: the replay control, in solid ink */
+.btn-replay {
+  appearance: none;
+  border: 1px solid var(--color-text-primary);
+  background: var(--color-text-primary);
+  color: var(--color-bg-page);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+.btn-replay:active { transform: scale(0.97); }
+.btn-replay-inline {
+  padding: 6px 10px;
+  margin-left: auto;
+  font-size: 10px;
+}
+
+/* square knob on a hairline track — paper and square edges, no pill chrome */
+.scrub {
+  flex: 1;
+  max-width: 320px;
+  appearance: none;
+  height: 14px;
+  background: linear-gradient(var(--color-rule-strong), var(--color-rule-strong)) no-repeat center / 100% 2px;
+  cursor: pointer;
+}
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-text-primary);
+}
+.scrub::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-text-primary);
+}
+.scrub::-moz-range-track { background: transparent; }
+
+/* ---- blue = annotation: the worked-example margin note ---- */
+
+.annotation {
+  margin: 0 16px 14px;
+  padding: 10px 14px;
+  border-left: 2px solid var(--color-annotation);
+  background: var(--color-annotation-wash);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-annotation);
+  max-width: 68ch;
+}
+.annotation p { margin: 0; }
+/* inside .mech the 16px horizontal pad already exists — the margin only spaces vertically */
+.mech .annotation { margin: 14px 0 6px; }
+/* the section's closing note: no rule above it, just the annotation voice */
+.annotation-conclusion { margin-top: 14px; }
+.link-flip {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-annotation);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---- Table 3: doctor findings ---- */
+
+.doctor-table { padding: 6px 16px 10px; }
+.doctor-row { padding: 10px 0; }
+.doctor-row + .doctor-row { border-top: 1px dotted var(--color-rule); }
+.doctor-head {
+  margin: 0 0 4px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+.doctor-no { color: var(--color-text-ghost); margin-right: 10px; }
+.doctor-tag {
+  display: inline-block;
+  margin-right: 10px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.doctor-tag-collision,
+.doctor-tag-duplicate,
+.doctor-tag-overlap { color: var(--color-verify-ink); }
+.doctor-skills { font-weight: 700; }
+.doctor-evidence {
+  margin: 0 0 2px 28px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  max-width: 74ch;
+}
+.doctor-action {
+  margin: 0 0 0 28px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-annotation);
+  max-width: 74ch;
+}
+.doctor-action-label {
+  margin-right: 6px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* ---- the two terminals: the guess vs the judgment, same real prompt ---- */
+
+.terminals { margin: 4px 0 16px; }
+.terminals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.terminal {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-bg-figure);
+  padding: 12px 14px;
+}
+/* the rotor's transcript reserves its tallest scenario so nothing jumps */
+.terminal-stock .terminal-out { min-height: calc(1.55em * 8); }
+.terminal-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+.terminal-out {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--color-text-secondary);
+}
+/* ink density carries the story: ● action lines solid, ⎿ result lines muted,
+   matching the real terminal's dimming */
+.terminal-verdict .terminal-out { color: var(--color-text-primary); }
+.term-dim { color: var(--color-text-ghost); }
+
+/* the two panels are not peers: the routed one carries the annotation blue,
+   the stock one is monochrome and muted throughout */
+.terminal-verdict { border-color: var(--color-annotation); }
+.terminal-verdict .terminal-label { color: var(--color-annotation); }
+.terminal-stock .terminal-label { color: var(--color-text-ghost); }
+.terminal-stock .terminal-annot {
+  border-left-color: var(--color-rule-strong);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+}
+
+/* the shared prompt row: terminal-label hierarchy, the page's standard query style */
+.prompt-lead { margin-bottom: 0; }
+.prompt-lead .query { margin: 0; }
+
+/* the fork: a schematic trace sending the prompt into both regimes — square
+   corners, no arrowheads, square pins plugged into each panel's top edge.
+   Stem and rail are neutral; each drop takes its destination's color. */
+.fork {
+  position: relative;
+  height: 24px;
+}
+.fork span {
+  position: absolute;
+  background: var(--color-rule-strong);
+}
+.fork-stem {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 11px;
+}
+.fork-rail {
+  top: 11px;
+  left: calc(25% - 3px);
+  right: calc(25% - 3px);
+  height: 1px;
+}
+.fork-drop {
+  top: 12px;
+  width: 1px;
+  height: 12px;
+}
+.fork-drop-a { left: calc(25% - 3px); }
+.fork-drop-b {
+  left: calc(75% + 3px);
+  background: var(--color-annotation);
+}
+.fork-drop::after {
+  content: '';
+  position: absolute;
+  left: -2.5px;
+  bottom: -3px;
+  width: 6px;
+  height: 6px;
+  background: inherit;
+}
+
+@media (max-width: 640px) {
+  .fork { display: none; }
+  .prompt-lead { margin-bottom: 12px; }
+}
+
+/* the stock rotor: model name in the label, square dots mark the scenario */
+.terminal-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rotor-dots { display: flex; gap: 4px; }
+.rotor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-rule);
+}
+.rotor-dot-current { background: var(--color-text-ghost); }
+
+/* blue = annotation: the interpretive callout, anchored to the card's foot so the
+   two conclusions line up side by side whatever the transcript above is doing */
+.terminal-annot {
+  margin: 10px 0 0;
+  margin-top: auto;
+  padding: 8px 10px;
+  border-left: 2px solid var(--color-annotation);
+  background: var(--color-annotation-wash);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-annotation);
+}
+
+@media (max-width: 640px) {
+  .terminals-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- the sliding spotlight ---- */
+
+.spotlight {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 32px;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-rule);
+}
+.spot-chips {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.navbtn {
+  appearance: none;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .navbtn:hover:not(:disabled) { background: var(--color-bg-hover); }
+  /* the active chip keeps its inverted scheme: paper text needs an ink ground */
+  .spot-chip[aria-current='true']:hover:not(:disabled) {
+    background: var(--color-text-secondary);
+    border-color: var(--color-text-secondary);
+  }
+}
+.navbtn:active:not(:disabled) { transform: scale(0.97); }
+.navbtn:disabled { opacity: 0.4; cursor: default; }
+.spot-chip[aria-current='true'] {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-bg-page);
+}
+/* larger glyph, same 28px control height as the chips (16 + 2×5 + borders) */
+.spot-arrow {
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 10px;
+}
+.figure, .masthead { scroll-margin-top: 56px; }
+
+@media (max-width: 640px) {
+  .mech-controls .scrub { max-width: none; }
+  .doctor-evidence, .doctor-action { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0ms !important; }
+}

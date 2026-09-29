@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skill Routing with Jev, a Recorded Evaluation Report</title>
+  <meta name="description" content="Real Jev routing runs over a real skill catalog, recorded to JSON and replayed verbatim with thresholds, misses, and latencies included." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="report">
+    <header class="masthead" id="top">
+      <p class="masthead-series">jev-skill-router · recorded evaluation</p>
+      <h1 class="masthead-title">Which skills should the agent invoke?</h1>
+      <div class="terminals">
+        <div class="terminal prompt-lead">
+          <p class="terminal-label">Prompt</p>
+          <blockquote class="query" id="intro-query"></blockquote>
+        </div>
+        <div class="fork" aria-hidden="true">
+          <span class="fork-stem"></span>
+          <span class="fork-rail"></span>
+          <span class="fork-drop fork-drop-a"></span>
+          <span class="fork-drop fork-drop-b"></span>
+        </div>
+        <div class="terminals-grid">
+          <div class="terminal terminal-stock">
+            <p class="terminal-label terminal-label-row">
+              <span id="stock-model">Just a coding agent · fable</span>
+              <span class="rotor-dots" id="stock-dots" aria-hidden="true"></span>
+            </p>
+            <pre class="terminal-out" id="stock-out">● Skill(better-accessibility)
+<span class="term-dim">  ⎿  Launching skill: better-accessibility</span>
+
+● I'll rebuild the focus order and ARIA wiring per the accessibility skill.</pre>
+            <p class="terminal-annot">Recorded stock runs, same prompt, four models. One
+              invoked the right skill and three never reached for one. Skill use rides on
+              which model you picked.</p>
+          </div>
+          <div class="terminal terminal-verdict">
+            <p class="terminal-label">With jev-skill-router · any model</p>
+            <pre class="terminal-out" id="intro-verdict"></pre>
+            <p class="terminal-annot">Recorded routed runs, same prompt, four models. The
+              same invoke verdict every time. The judgment lands before the model starts
+              thinking, so the scores and the bands they fall in stay far steadier from
+              run to run than a model deciding for itself.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="spotlight" id="spotlight" aria-label="Sections"></nav>
+
+    <figure class="figure" id="fig-mechanism">
+      <figcaption class="figure-head">
+        <span class="figure-title">Mechanism</span>
+        <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="mech-date"></time></span>
+      </figcaption>
+      <p class="figure-note">One real turn over a real catalog of <span id="mech-cat"></span> installed
+        skills. The chart replays the full judgment at its captured speed.</p>
+      <div class="mech">
+        <blockquote class="query" id="mech-query"></blockquote>
+        <div class="tablewrap" id="mech-tablewrap">
+          <div class="run-table run-table-compact" id="mech-table"></div>
+        </div>
+        <div class="mech-controls" id="mech-controls">
+          <button type="button" class="btn-replay" id="mech-replay">Replay</button>
+          <input type="range" class="scrub" id="mech-scrub" min="0" max="1000" value="0" step="1" aria-label="Scrub the replay" />
+          <span class="mech-ms" id="mech-ms"></span>
+        </div>
+        <pre class="mech-verdict" id="mech-verdict"></pre>
+        <aside class="annotation">
+          <p>Each row is one Noul, a typed probability judged for that skill alone. No judgment
+            reads the others, so the catalog grows without reshaping any single score. And the two
+            guides are tunable thresholds, settings that cut these scores into a verdict.</p>
+        </aside>
+      </div>
+    </figure>
+
+    <figure class="figure" id="fig-routing">
+      <figcaption class="figure-head">
+        <span class="figure-title">Catalog</span>
+        <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="fig1-date"></time></span>
+      </figcaption>
+      <div class="fixture-tabs" id="fixture-tabs" role="tablist" aria-label="Recorded sessions"></div>
+      <blockquote class="query" id="fig1-query"></blockquote>
+      <p class="fixture-type" id="fig1-type"></p>
+      <div class="tablewrap" id="run-tablewrap">
+        <div class="run-table" id="run-table" aria-live="polite"></div>
+      </div>
+      <ul class="figure-legend" id="fig1-legend"></ul>
+      <aside class="annotation" id="fig1-annotation" hidden></aside>
+      <div class="threshold-key" id="threshold-key"></div>
+      <aside class="annotation annotation-conclusion" id="fig1-conclusion"></aside>
+    </figure>
+
+    <figure class="figure" id="fig-scale">
+      <figcaption class="figure-head">
+        <span class="figure-title">Scale</span>
+        <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="fig3-date"></time></span>
+      </figcaption>
+      <p class="figure-note">
+        The same judgment at org scale, the whole catalog judged every turn. Each skill is
+        judged on its own, so the sweep splits across parallel requests, and a catalog twenty
+        times larger came back in about twice the time of the runs above, not twenty times it.
+        The catalog is packed with near-identical siblings, and in every recorded run the top
+        score still lands on a correct skill.
+      </p>
+      <div class="fixture-tabs" id="scale-tabs" role="tablist" aria-label="Recorded scale runs"></div>
+      <blockquote class="query" id="fig3-query"></blockquote>
+      <p class="fixture-type" id="fig3-type"></p>
+      <div class="tablewrap" id="scale-tablewrap">
+        <div class="run-table run-table-compact" id="scale-table"></div>
+      </div>
+      <ul class="figure-legend" id="fig3-legend"></ul>
+      <aside class="annotation annotation-conclusion" id="fig3-conclusion"></aside>
+    </figure>
+
+    <figure class="figure" id="table-doctor">
+      <figcaption class="figure-head">
+        <span class="figure-title">Doctor</span>
+        <span class="figure-stamp"><span class="stamp-label">recorded</span> <time datetime="2026-09-22">2026-09-22</time></span>
+      </figcaption>
+      <p class="figure-note">
+        By convention a skill declares what it does and when to run in its SKILL.md
+        description, and that field is everything the router and the doctor see. Each skill's
+        own description is routed against the whole catalog, so co-invocation on its home
+        territory is measured confusion. Every finding names its evidence and exactly one
+        action. This is the control surface for the co-invocation Catalog reports.
+      </p>
+      <div class="doctor-table" id="doctor-table"></div>
+      <p class="figure-note">Same-author suites are exempt from overlap findings, and self-miss
+        probes contribute no conclusions.</p>
+      <aside class="annotation annotation-conclusion" id="t3-conclusion"></aside>
+    </figure>
+
+    <footer class="colophon">
+      <p>
+        This page is a static artifact. It renders <span class="notation">web/data/replays.json</span> and
+        <span class="notation">web/data/doctor.json</span>, generated from
+        <span class="notation">fixtures/recordings/</span>
+        by the same <span class="notation">route()</span> and doctor pipelines the benchmarks
+        drive. No API key exists here. Verify by
+        <a href="https://github.com/abgregs/jev-skill-router">reading the source</a>.
+      </p>
+    </footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
