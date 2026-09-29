@@ -3554,7 +3554,7 @@ var init_dist = __esm({
       #parseResponse;
       #parsed;
       constructor(responsePromise, parseResponse) {
-        super((resolve3) => resolve3(void 0));
+        super((resolve4) => resolve4(void 0));
         this.#responsePromise = responsePromise;
         this.#parseResponse = parseResponse;
       }
@@ -3646,7 +3646,7 @@ var init_dist = __esm({
       const exponential = Math.min(policy.backoffInitialMs * 2 ** attempt, policy.backoffMaxMs);
       return Math.round(exponential * (1 - random() * policy.backoffJitter));
     };
-    sleep = (ms, signal) => new Promise((resolve3, reject) => {
+    sleep = (ms, signal) => new Promise((resolve4, reject) => {
       if (signal?.aborted) return reject(signal.reason);
       const onAbort = () => {
         clearTimeout(timer);
@@ -3654,7 +3654,7 @@ var init_dist = __esm({
       };
       const timer = setTimeout(() => {
         signal?.removeEventListener("abort", onAbort);
-        resolve3();
+        resolve4();
       }, ms);
       signal?.addEventListener("abort", onAbort, { once: true });
     });
@@ -4206,13 +4206,13 @@ var init_jevJudge = __esm({
 });
 
 // hooks/user-prompt-submit.ts
-import { existsSync as existsSync3, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
-import { homedir as homedir3, tmpdir } from "node:os";
+import { existsSync as existsSync4, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join as join3 } from "node:path";
 
 // lib/router/runRoute.ts
-import { existsSync as existsSync2 } from "node:fs";
-import { dirname, join as join2, resolve as resolve2 } from "node:path";
+import { existsSync as existsSync3 } from "node:fs";
+import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // lib/config.ts
@@ -4239,13 +4239,22 @@ var stringList = (v) => Array.isArray(v) ? v.filter((x) => typeof x === "string"
 
 // lib/skills/loadSkills.ts
 var import_gray_matter = __toESM(require_gray_matter(), 1);
-import { readFileSync as readFileSync2, readdirSync, statSync } from "node:fs";
+import { existsSync as existsSync2, readFileSync as readFileSync2, readdirSync, statSync } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve as resolve2 } from "node:path";
 function defaultSkillRoots(cwd = process.cwd()) {
+  const projectDirs = [];
+  for (let dir = resolve2(cwd); ; dir = dirname(dir)) {
+    projectDirs.push(dir);
+    if (existsSync2(join(dir, ".git"))) break;
+    if (dirname(dir) === dir) {
+      projectDirs.splice(1);
+      break;
+    }
+  }
   return [
     { dir: join(homedir2(), ".claude", "skills"), scope: "global" },
-    { dir: join(cwd, ".claude", "skills"), scope: "project" }
+    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" }))
   ];
 }
 var STOPWORDS = /* @__PURE__ */ new Set([
@@ -4334,7 +4343,7 @@ function loadSkills(roots = defaultSkillRoots()) {
   const byId = /* @__PURE__ */ new Map();
   for (const { dir, scope } of roots) {
     for (const skill of readSkillDir(dir, scope)) {
-      byId.set(skill.id, skill);
+      if (!byId.has(skill.id)) byId.set(skill.id, skill);
     }
   }
   return [...byId.values()];
@@ -4460,14 +4469,14 @@ function createMockJudge(config = {}) {
 // lib/router/runRoute.ts
 function loadJevKey() {
   if (process.env.TYPESAFE_API_KEY) return;
-  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const moduleDir = dirname2(fileURLToPath(import.meta.url));
   const candidates = [
-    resolve2(".env.local"),
+    resolve3(".env.local"),
     join2(moduleDir, "..", "..", ".env.local"),
     join2(moduleDir, "..", ".env.local")
   ];
   for (const p of candidates) {
-    if (!existsSync2(p)) continue;
+    if (!existsSync3(p)) continue;
     process.loadEnvFile(p);
     if (process.env.TYPESAFE_API_KEY) return;
   }
@@ -4487,11 +4496,17 @@ async function createJudgeByName(name) {
 async function runRoute(input) {
   const cfg = loadConfigFile(input.configPath);
   const cfgNum = (key) => typeof cfg[key] === "number" ? cfg[key] : void 0;
-  const skillsDir = expandHome(
-    input.skillsDir ?? process.env.SKILLS_DIR ?? (typeof cfg.skillsDir === "string" ? cfg.skillsDir : "~/.agents/skills")
-  );
+  const roots = input.skillRoots ?? [
+    {
+      dir: expandHome(
+        input.skillsDir ?? process.env.SKILLS_DIR ?? (typeof cfg.skillsDir === "string" ? cfg.skillsDir : "~/.agents/skills")
+      ),
+      scope: "global"
+    }
+  ];
+  const skillsDir = roots.map((r) => r.dir).join(", ");
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude));
-  const skills = loadSkills([{ dir: skillsDir, scope: "global" }]).filter((s) => !exclude.has(s.id));
+  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
   }
@@ -4525,7 +4540,7 @@ async function runRoute(input) {
 // hooks/user-prompt-submit.ts
 var STATE_DIR = join3(tmpdir(), "jev-skill-router");
 function recentTranscript(transcriptPath, maxChars = 2e3) {
-  if (!transcriptPath || !existsSync3(transcriptPath)) return "";
+  if (!transcriptPath || !existsSync4(transcriptPath)) return "";
   try {
     const lines = readFileSync3(transcriptPath, "utf8").trim().split("\n").slice(-40);
     const turns = [];
@@ -4556,12 +4571,13 @@ try {
   const verdict = await runRoute({
     query: prompt,
     // This adapter's host is Claude Code, so route on the catalog Claude Code actually
-    // loads — NOT runRoute's provider-neutral ~/.agents/skills default. The two stores
-    // drift; a verdict drawn from the wrong one can never name (and the gate would then
-    // deny) skills the host really has. skillsDir REPLACES the root, so no dup risk.
-    skillsDir: join3(homedir3(), ".claude", "skills"),
+    // loads — personal ~/.claude/skills plus the project's .claude/skills up to the
+    // repo root — NOT runRoute's provider-neutral ~/.agents/skills default. A verdict
+    // drawn from the wrong store can never name (and the gate would then deny) skills
+    // the host really has.
+    skillRoots: defaultSkillRoots(projectCwd),
     transcript: recentTranscript(input.transcript_path) || void 0,
-    configPath: existsSync3(projectConfig) ? projectConfig : void 0
+    configPath: existsSync4(projectConfig) ? projectConfig : void 0
   });
   const routerCliMs = Date.now() - routeStart;
   const promptLower = prompt.toLowerCase();

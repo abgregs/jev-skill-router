@@ -21,6 +21,8 @@ export interface RunRouteInput {
   /** Explicit config file path; otherwise .skillrouter.json in cwd, else home. */
   configPath?: string
   skillsDir?: string
+  /** Layered roots (e.g. a host's personal + project stores); replaces skillsDir. */
+  skillRoots?: { dir: string; scope: 'global' | 'project' }[]
   judge?: string
   threshold?: number
   suggestFloor?: number
@@ -80,15 +82,21 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
   const cfg = loadConfigFile(input.configPath)
   const cfgNum = (key: string) => (typeof cfg[key] === 'number' ? (cfg[key] as number) : undefined)
 
-  const skillsDir = expandHome(
-    input.skillsDir ??
-      process.env.SKILLS_DIR ??
-      (typeof cfg.skillsDir === 'string' ? cfg.skillsDir : '~/.agents/skills')
-  )
+  const roots = input.skillRoots ?? [
+    {
+      dir: expandHome(
+        input.skillsDir ??
+          process.env.SKILLS_DIR ??
+          (typeof cfg.skillsDir === 'string' ? cfg.skillsDir : '~/.agents/skills')
+      ),
+      scope: 'global' as const
+    }
+  ]
+  const skillsDir = roots.map((r) => r.dir).join(', ')
   // The config's exclude list removes skills from routing entirely — the user's way
   // of resolving catalog collisions (see doctor-cli) without uninstalling anything.
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude))
-  const skills = loadSkills([{ dir: skillsDir, scope: 'global' }]).filter((s) => !exclude.has(s.id))
+  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id))
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`)
   }

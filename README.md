@@ -212,8 +212,12 @@ Two hooks make the router authoritative in a Claude Code session:
   `ns:name`, the base name, so explicit slash invocations always pass) and the config's
   `alwaysAllow` list. Two documented limits: *describing* a skill in free text without
   naming it does not trigger the override (name it, or let the verdict carry it), and
-  plugin-provided skills never appear on verdicts — the routed catalog is the skills
-  directory — so they pass via user naming or `alwaysAllow`.
+  the routed catalog is what Claude Code loads at session start: personal
+  `~/.claude/skills` plus the project's `.claude/skills` from the session directory up
+  to the repository root (a personal skill shadows a same-named project skill, as in
+  Claude Code). Skills outside it — plugin-provided, nested below the session
+  directory, from `--add-dir`, managed, or synced from claude.ai — never appear on
+  verdicts, so they pass via user naming or `alwaysAllow`.
 
 **Install — the plugin (recommended).** The repo is a Claude Code plugin and its own
 marketplace; the hooks ship as committed, dependency-free bundles (`dist/`), so there is

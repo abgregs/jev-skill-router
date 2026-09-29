@@ -14,9 +14,10 @@
 // Wiring: `jev-skill-router install claude`, or the plugin's hooks/hooks.json —
 // both point at the bundled dist/hooks/user-prompt-submit.mjs.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runRoute } from '../lib/router/runRoute.js'
+import { defaultSkillRoots } from '../lib/skills/loadSkills.js'
 
 export const STATE_DIR = join(tmpdir(), 'jev-skill-router')
 
@@ -65,10 +66,11 @@ try {
   const verdict = await runRoute({
     query: prompt,
     // This adapter's host is Claude Code, so route on the catalog Claude Code actually
-    // loads — NOT runRoute's provider-neutral ~/.agents/skills default. The two stores
-    // drift; a verdict drawn from the wrong one can never name (and the gate would then
-    // deny) skills the host really has. skillsDir REPLACES the root, so no dup risk.
-    skillsDir: join(homedir(), '.claude', 'skills'),
+    // loads — personal ~/.claude/skills plus the project's .claude/skills up to the
+    // repo root — NOT runRoute's provider-neutral ~/.agents/skills default. A verdict
+    // drawn from the wrong store can never name (and the gate would then deny) skills
+    // the host really has.
+    skillRoots: defaultSkillRoots(projectCwd),
     transcript: recentTranscript(input.transcript_path) || undefined,
     configPath: existsSync(projectConfig) ? projectConfig : undefined
   })

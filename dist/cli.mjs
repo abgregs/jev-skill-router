@@ -3573,13 +3573,22 @@ var require_gray_matter = __commonJS({
 });
 
 // lib/skills/loadSkills.ts
-import { readFileSync as readFileSync2, readdirSync, statSync } from "node:fs";
+import { existsSync as existsSync2, readFileSync as readFileSync2, readdirSync, statSync } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve as resolve2 } from "node:path";
 function defaultSkillRoots(cwd = process.cwd()) {
+  const projectDirs = [];
+  for (let dir = resolve2(cwd); ; dir = dirname(dir)) {
+    projectDirs.push(dir);
+    if (existsSync2(join(dir, ".git"))) break;
+    if (dirname(dir) === dir) {
+      projectDirs.splice(1);
+      break;
+    }
+  }
   return [
     { dir: join(homedir2(), ".claude", "skills"), scope: "global" },
-    { dir: join(cwd, ".claude", "skills"), scope: "project" }
+    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" }))
   ];
 }
 function tokenize(text) {
@@ -3653,7 +3662,7 @@ function loadSkills(roots = defaultSkillRoots()) {
   const byId = /* @__PURE__ */ new Map();
   for (const { dir, scope } of roots) {
     for (const skill of readSkillDir(dir, scope)) {
-      byId.set(skill.id, skill);
+      if (!byId.has(skill.id)) byId.set(skill.id, skill);
     }
   }
   return [...byId.values()];
@@ -3861,7 +3870,7 @@ var init_dist = __esm({
       #parseResponse;
       #parsed;
       constructor(responsePromise, parseResponse) {
-        super((resolve4) => resolve4(void 0));
+        super((resolve5) => resolve5(void 0));
         this.#responsePromise = responsePromise;
         this.#parseResponse = parseResponse;
       }
@@ -3953,7 +3962,7 @@ var init_dist = __esm({
       const exponential = Math.min(policy.backoffInitialMs * 2 ** attempt, policy.backoffMaxMs);
       return Math.round(exponential * (1 - random() * policy.backoffJitter));
     };
-    sleep = (ms, signal) => new Promise((resolve4, reject) => {
+    sleep = (ms, signal) => new Promise((resolve5, reject) => {
       if (signal?.aborted) return reject(signal.reason);
       const onAbort = () => {
         clearTimeout(timer);
@@ -3961,7 +3970,7 @@ var init_dist = __esm({
       };
       const timer = setTimeout(() => {
         signal?.removeEventListener("abort", onAbort);
-        resolve4();
+        resolve5();
       }, ms);
       signal?.addEventListener("abort", onAbort, { once: true });
     });
@@ -4513,19 +4522,19 @@ var init_jevJudge = __esm({
 });
 
 // lib/router/runRoute.ts
-import { existsSync as existsSync2 } from "node:fs";
-import { dirname, join as join2, resolve as resolve2 } from "node:path";
+import { existsSync as existsSync3 } from "node:fs";
+import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
 import { fileURLToPath } from "node:url";
 function loadJevKey() {
   if (process.env.TYPESAFE_API_KEY) return;
-  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const moduleDir = dirname2(fileURLToPath(import.meta.url));
   const candidates = [
-    resolve2(".env.local"),
+    resolve3(".env.local"),
     join2(moduleDir, "..", "..", ".env.local"),
     join2(moduleDir, "..", ".env.local")
   ];
   for (const p of candidates) {
-    if (!existsSync2(p)) continue;
+    if (!existsSync3(p)) continue;
     process.loadEnvFile(p);
     if (process.env.TYPESAFE_API_KEY) return;
   }
@@ -4545,11 +4554,17 @@ async function createJudgeByName(name) {
 async function runRoute(input) {
   const cfg = loadConfigFile(input.configPath);
   const cfgNum = (key) => typeof cfg[key] === "number" ? cfg[key] : void 0;
-  const skillsDir = expandHome(
-    input.skillsDir ?? process.env.SKILLS_DIR ?? (typeof cfg.skillsDir === "string" ? cfg.skillsDir : "~/.agents/skills")
-  );
+  const roots = input.skillRoots ?? [
+    {
+      dir: expandHome(
+        input.skillsDir ?? process.env.SKILLS_DIR ?? (typeof cfg.skillsDir === "string" ? cfg.skillsDir : "~/.agents/skills")
+      ),
+      scope: "global"
+    }
+  ];
+  const skillsDir = roots.map((r) => r.dir).join(", ");
   const exclude = new Set(input.exclude ?? stringList(cfg.exclude));
-  const skills = loadSkills([{ dir: skillsDir, scope: "global" }]).filter((s) => !exclude.has(s.id));
+  const skills = loadSkills(roots).filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
     throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
   }
@@ -4987,8 +5002,8 @@ var doctor_cli_exports = {};
 __export(doctor_cli_exports, {
   main: () => main2
 });
-import { existsSync as existsSync3, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
-import { dirname as dirname2 } from "node:path";
+import { existsSync as existsSync4, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
+import { dirname as dirname3 } from "node:path";
 function parseArgs2(argv) {
   const opts = {};
   const bools = /* @__PURE__ */ new Set();
@@ -5134,7 +5149,7 @@ async function main2(argv) {
       const recordPath = expandHome(opts.record ?? "fixtures/recordings/doctor-probes.json");
       const fresh = toRecordedProbes(outcomes, skills);
       let all = fresh;
-      if (existsSync3(recordPath)) {
+      if (existsSync4(recordPath)) {
         try {
           const prev = JSON.parse(readFileSync3(recordPath, "utf8"));
           if (prev.kind === "doctor-probes" && prev.judge === judgeName && prev.skillsDir === skillsDir) {
@@ -5150,7 +5165,7 @@ async function main2(argv) {
         judge: judgeName,
         outcomes: all
       };
-      mkdirSync(dirname2(recordPath), { recursive: true });
+      mkdirSync(dirname3(recordPath), { recursive: true });
       writeFileSync(recordPath, JSON.stringify(recording, null, 2));
       console.error(
         `recorded ${fresh.length} probe(s) \u2192 ${recordPath}` + (all.length !== fresh.length ? ` (merged into ${all.length} total)` : "")
@@ -5228,9 +5243,9 @@ var install_cli_exports = {};
 __export(install_cli_exports, {
   main: () => main3
 });
-import { existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync5, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
 import { homedir as homedir3 } from "node:os";
-import { dirname as dirname3, join as join3, resolve as resolve3 } from "node:path";
+import { dirname as dirname4, join as join3, resolve as resolve4 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function isOurs(entry) {
   return (entry.hooks ?? []).some(
@@ -5238,11 +5253,11 @@ function isOurs(entry) {
   );
 }
 function hookBundles() {
-  const moduleDir = dirname3(fileURLToPath2(import.meta.url));
+  const moduleDir = dirname4(fileURLToPath2(import.meta.url));
   for (const dir of [join3(moduleDir, "hooks"), join3(moduleDir, "..", "dist", "hooks")]) {
     const prompt = join3(dir, "user-prompt-submit.mjs");
     const gate = join3(dir, "pre-tool-use-gate.mjs");
-    if (existsSync4(prompt) && existsSync4(gate)) return { prompt, gate };
+    if (existsSync5(prompt) && existsSync5(gate)) return { prompt, gate };
   }
   throw new Error('Bundled hooks not found \u2014 run "npm run build" first (they live in dist/hooks/).');
 }
@@ -5258,9 +5273,9 @@ async function main3(argv) {
 ("claude" is the only supported host today.)`);
     process.exit(1);
   }
-  const settingsPath = bools.has("project") ? resolve3(".claude", "settings.json") : join3(homedir3(), ".claude", "settings.json");
+  const settingsPath = bools.has("project") ? resolve4(".claude", "settings.json") : join3(homedir3(), ".claude", "settings.json");
   let settings = {};
-  if (existsSync4(settingsPath)) {
+  if (existsSync5(settingsPath)) {
     try {
       settings = JSON.parse(readFileSync4(settingsPath, "utf8"));
     } catch {
@@ -5291,7 +5306,7 @@ async function main3(argv) {
     console.log(serialized);
     return;
   }
-  mkdirSync2(dirname3(settingsPath), { recursive: true });
+  mkdirSync2(dirname4(settingsPath), { recursive: true });
   writeFileSync2(settingsPath, serialized);
   if (bools.has("uninstall")) {
     console.log(`Removed ${removedCount} router hook entr${removedCount === 1 ? "y" : "ies"} from ${settingsPath}.`);
@@ -5311,7 +5326,7 @@ var init_install_cli = __esm({
 
 // scripts/cli.ts
 import { readFileSync as readFileSync5 } from "node:fs";
-import { dirname as dirname4, join as join4 } from "node:path";
+import { dirname as dirname5, join as join4 } from "node:path";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 var HELP = `jev-skill-router \u2014 per-turn semantic skill routing for coding agents
 
@@ -5324,7 +5339,7 @@ Commands:
 
 Run \`jev-skill-router <command> --help\` for a command's flags.`;
 function version() {
-  const pkgPath = join4(dirname4(fileURLToPath3(import.meta.url)), "..", "package.json");
+  const pkgPath = join4(dirname5(fileURLToPath3(import.meta.url)), "..", "package.json");
   return JSON.parse(readFileSync5(pkgPath, "utf8")).version;
 }
 var [cmd, ...rest] = process.argv.slice(2);
