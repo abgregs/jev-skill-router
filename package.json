@@ -1,0 +1,34 @@
+{
+  "name": "jev-skill-router",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Jev-powered router that scores which agent skills to invoke for the current coding session.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "jev-skill-router": "dist/cli.mjs" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "inspect": "tsx scripts/inspect.ts",
+    "bench": "tsx bench/run.ts",
+    "route": "tsx scripts/cli.ts route",
+    "doctor": "tsx scripts/cli.ts doctor",
+    "route:live": "tsx scripts/route-live.ts",
+    "eval:capture": "tsx scripts/eval-capture.ts",
+    "bench:session": "tsx scripts/session-bench.ts",
+    "demo": "tsx web/serve.ts",
+    "typecheck": "tsc --noEmit",
+    "demo:data": "tsx scripts/demo-data.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
+  }
+}
