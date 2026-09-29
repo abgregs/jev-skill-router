@@ -115,7 +115,8 @@ Routing decides on **name + description** only — the real Agent Skills routing
 (progressive disclosure), so no skill bodies are read. This takes the convention at its
 word: the spec designates SKILL.md frontmatter `description` as where a skill states what
 it does and *when it should be used*, so that field is the router's entire premise. A
-skill without one cannot be routed to at all (the doctor flags these as unroutable).
+skill without one is left out of routing (the doctor flags these as unroutable); Claude
+Code falls back to the body's first line, but the router does not guess.
 
 **Policy: two bands and a cap.** Skills at `p >= threshold` (default **0.85** — recall-biased,
 calibrated on the real-catalog fixtures; precision-minded hosts set 0.9) are **invoked**, capped
@@ -146,7 +147,8 @@ description", "add W to exclude" — never a wall of similarity scores.
 **duplicates** (in the tested catalog, `better-ui` ≡ `make-interfaces-feel-better` at
 keyword Jaccard 0.62, a legacy rename — the next-closest pair sits at 0.33), **unroutable**
 folders (no SKILL.md or no description; the loader silently skips these, the doctor
-surfaces them), **weak** routing surfaces (too few keywords to fire on anything but exact
+surfaces them — Claude Code's own `synced/` and dot-folders like `.trash` are not
+skills and are ignored), **weak** routing surfaces (too few keywords to fire on anything but exact
 wording), and **stale** `alwaysAllow`/`exclude` entries naming uninstalled skills.
 
 **Overlap findings come from probes, not similarity.** Each skill's description is
@@ -205,19 +207,22 @@ Two hooks make the router authoritative in a Claude Code session:
   matches what the user commanded. Silent on conversational turns and on any error — it
   never breaks a turn.
 - **`hooks/pre-tool-use-gate.ts`** (enforcement) — matched on the `Skill` tool; denies
-  invocations not on the turn's approved list, so the agent's native instinct to pick its
-  own skills has no effect. **Fail-open** (no/stale state → allow): routing is a policy
-  layer, not a security boundary. Always allowed: skills the user named in their prompt
-  (typed `/git-commit` etc. — matched on the skill id and, for plugin-namespaced ids like
-  `ns:name`, the base name, so explicit slash invocations always pass) and the config's
-  `alwaysAllow` list. Two documented limits: *describing* a skill in free text without
-  naming it does not trigger the override (name it, or let the verdict carry it), and
-  the routed catalog is what Claude Code loads at session start: personal
-  `~/.claude/skills` plus the project's `.claude/skills` from the session directory up
-  to the repository root (a personal skill shadows a same-named project skill, as in
-  Claude Code). Skills outside it — plugin-provided, nested below the session
-  directory, from `--add-dir`, managed, or synced from claude.ai — never appear on
-  verdicts, so they pass via user naming or `alwaysAllow`.
+  invocations of routed skills that are not on the turn's approved list, so the agent's
+  native instinct to pick its own skills has no effect. **Fail-open** (no/stale state →
+  allow): routing is a policy layer, not a security boundary. Always allowed: skills the
+  user named in their prompt (typed `/git-commit` etc. — matched on the skill id and,
+  for plugin-namespaced ids like `ns:name`, the base name, so explicit slash invocations
+  always pass), the config's `alwaysAllow` list, and any skill the router did not judge.
+  One documented limit: *describing* a skill in free text without naming it does not
+  trigger the override (name it, or let the verdict carry it).
+
+**What gets routed.** The routed catalog is what Claude Code loads at session start:
+personal `~/.claude/skills`, the project's `.claude/skills` from the session directory up
+to the repository root (a personal skill shadows a same-named project skill, as in Claude
+Code), and skills synced from claude.ai (`~/.claude/skills/synced/`), routed as
+`anthropic-skills:<name>`. Skills outside it — bundled, plugin-provided, nested below the
+session directory, from `--add-dir`, managed, or without a `description` — are never
+judged, and the gate lets them through untouched.
 
 **Install — the plugin (recommended).** The repo is a Claude Code plugin and its own
 marketplace; the hooks ship as committed, dependency-free bundles (`dist/`), so there is
