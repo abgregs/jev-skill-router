@@ -43,11 +43,15 @@ try {
   if (!existsSync(statePath)) allow();
   const state = JSON.parse(readFileSync(statePath, "utf8"));
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow();
+  const catalog = new Set(state.catalog ?? []);
+  const synced = `anthropic-skills:${skill}`;
+  const judgedId = catalog.has(skill) ? skill : catalog.has(synced) ? synced : null;
+  if (!judgedId) allow();
   const approved = /* @__PURE__ */ new Set([...state.invoke, ...state.suggest, ...alwaysAllowList(input.cwd ?? process.cwd())]);
   const prompt = state.prompt.toLowerCase();
   const baseName = skill.split(":").pop() ?? skill;
   if (prompt.includes(skill.toLowerCase()) || prompt.includes(baseName.toLowerCase())) allow();
-  if (approved.has(skill)) allow();
+  if (approved.has(skill) || approved.has(judgedId)) allow();
   deny(
     `Skill routing gate: "${skill}" is not on this turn's approved list. Invoke: [${state.invoke.join(", ") || "none"}]. Suggested: [${state.suggest.join(", ") || "none"}]. Use an approved skill, or ask the user if you believe this skill is needed.`
   );

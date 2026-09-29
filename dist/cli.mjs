@@ -3588,8 +3588,12 @@ function defaultSkillRoots(cwd = process.cwd()) {
   }
   return [
     { dir: join(homedir2(), ".claude", "skills"), scope: "global" },
-    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" }))
+    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" })),
+    { dir: join(homedir2(), ".claude", "skills", SYNCED_FOLDER), scope: "synced" }
   ];
+}
+function isHostFolder(entry) {
+  return entry === SYNCED_FOLDER || entry.startsWith(".");
 }
 function tokenize(text) {
   return text.toLowerCase().split(/[^a-z0-9+#]+/).filter((t) => t.length > 1 && !STOPWORDS.has(t));
@@ -3597,7 +3601,7 @@ function tokenize(text) {
 function deriveKeywords(name, description) {
   return [...new Set(tokenize(`${name} ${description}`))];
 }
-function readSkillDir(dir, scope) {
+function readSkillDir(dir, scope, idPrefix = "") {
   let entries;
   try {
     entries = readdirSync(dir);
@@ -3620,7 +3624,7 @@ function readSkillDir(dir, scope) {
     if (!description) continue;
     if (data["disable-model-invocation"] === true) continue;
     skills.push({
-      id: entry,
+      id: `${idPrefix}${entry}`,
       name,
       description,
       scope,
@@ -3639,6 +3643,7 @@ function scanUnroutable(dir) {
   }
   const unroutable = [];
   for (const entry of entries) {
+    if (isHostFolder(entry)) continue;
     const skillPath = join(dir, entry, "SKILL.md");
     try {
       if (!statSync(join(dir, entry)).isDirectory()) continue;
@@ -3658,20 +3663,30 @@ function scanUnroutable(dir) {
   }
   return unroutable;
 }
+function syncedBuckets(dir) {
+  try {
+    return readdirSync(dir).filter((entry) => !entry.startsWith(".") && statSync(join(dir, entry)).isDirectory()).map((entry) => join(dir, entry));
+  } catch {
+    return [];
+  }
+}
 function loadSkills(roots = defaultSkillRoots()) {
   const byId = /* @__PURE__ */ new Map();
   for (const { dir, scope } of roots) {
-    for (const skill of readSkillDir(dir, scope)) {
+    const found = scope === "synced" ? syncedBuckets(dir).flatMap((bucket) => readSkillDir(bucket, "synced", `${SYNCED_NAMESPACE}:`)) : readSkillDir(dir, scope);
+    for (const skill of found) {
       if (!byId.has(skill.id)) byId.set(skill.id, skill);
     }
   }
   return [...byId.values()];
 }
-var import_gray_matter, STOPWORDS;
+var import_gray_matter, SYNCED_FOLDER, SYNCED_NAMESPACE, STOPWORDS;
 var init_loadSkills = __esm({
   "lib/skills/loadSkills.ts"() {
     "use strict";
     import_gray_matter = __toESM(require_gray_matter(), 1);
+    SYNCED_FOLDER = "synced";
+    SYNCED_NAMESPACE = "anthropic-skills";
     STOPWORDS = /* @__PURE__ */ new Set([
       "the",
       "a",
@@ -4772,7 +4787,7 @@ function staticFindings(skills, unroutable, config) {
       kind: "unroutable",
       skills: [u.id],
       evidence: u.reason === "no-skill-md" ? `${u.source} has no SKILL.md` : `${u.source} has no description in its frontmatter`,
-      action: "add a description \u2014 the router (and progressive disclosure) cannot see this skill at all"
+      action: u.reason === "no-skill-md" ? "add a SKILL.md with a description, or remove the folder if it is not a skill" : "add a description \u2014 the router skips skills without one (Claude Code falls back to the first line of the body)"
     });
   }
   const known = /* @__PURE__ */ new Set([...skills.map((s) => s.id), ...unroutable.map((u) => u.id)]);

@@ -4,6 +4,10 @@
 // current turn's approved list (written by hooks/user-prompt-submit.ts), turning
 // "please defer to the router" into "off-list invocations do not execute".
 //
+// The gate governs only skills the router judged this turn. A skill it never saw —
+// bundled, plugin, --add-dir, managed, or one without a description — passes, so
+// the router never blocks what it could not weigh.
+//
 // FAIL-OPEN by design: routing is a policy layer, not a security boundary. No state
 // file, stale state, unparseable input → allow. Also always allowed:
 //   - skills the user explicitly named in their prompt (e.g. typed "/git-commit")
@@ -64,8 +68,17 @@ try {
     suggest: string[]
     prompt: string
     ts: number
+    catalog?: string[]
   }
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow()
+
+  // Resolve the call to a judged id. A synced skill is judged as anthropic-skills:<name>
+  // but may be invoked by its short name when no local skill holds it. Anything the
+  // router never judged passes (a state file without a catalog predates this rule).
+  const catalog = new Set(state.catalog ?? [])
+  const synced = `anthropic-skills:${skill}`
+  const judgedId = catalog.has(skill) ? skill : catalog.has(synced) ? synced : null
+  if (!judgedId) allow()
 
   const approved = new Set([...state.invoke, ...state.suggest, ...alwaysAllowList(input.cwd ?? process.cwd())])
   // The user naming a skill in their own prompt outranks the router. Plugin skills
@@ -74,7 +87,7 @@ try {
   const prompt = state.prompt.toLowerCase()
   const baseName = skill.split(':').pop() ?? skill
   if (prompt.includes(skill.toLowerCase()) || prompt.includes(baseName.toLowerCase())) allow()
-  if (approved.has(skill)) allow()
+  if (approved.has(skill) || approved.has(judgedId)) allow()
 
   deny(
     `Skill routing gate: "${skill}" is not on this turn's approved list. ` +

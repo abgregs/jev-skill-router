@@ -4242,6 +4242,8 @@ var import_gray_matter = __toESM(require_gray_matter(), 1);
 import { existsSync as existsSync2, readFileSync as readFileSync2, readdirSync, statSync } from "node:fs";
 import { homedir as homedir2 } from "node:os";
 import { dirname, join, resolve as resolve2 } from "node:path";
+var SYNCED_FOLDER = "synced";
+var SYNCED_NAMESPACE = "anthropic-skills";
 function defaultSkillRoots(cwd = process.cwd()) {
   const projectDirs = [];
   for (let dir = resolve2(cwd); ; dir = dirname(dir)) {
@@ -4254,7 +4256,8 @@ function defaultSkillRoots(cwd = process.cwd()) {
   }
   return [
     { dir: join(homedir2(), ".claude", "skills"), scope: "global" },
-    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" }))
+    ...projectDirs.map((dir) => ({ dir: join(dir, ".claude", "skills"), scope: "project" })),
+    { dir: join(homedir2(), ".claude", "skills", SYNCED_FOLDER), scope: "synced" }
   ];
 }
 var STOPWORDS = /* @__PURE__ */ new Set([
@@ -4306,7 +4309,7 @@ function tokenize(text) {
 function deriveKeywords(name, description) {
   return [...new Set(tokenize(`${name} ${description}`))];
 }
-function readSkillDir(dir, scope) {
+function readSkillDir(dir, scope, idPrefix = "") {
   let entries;
   try {
     entries = readdirSync(dir);
@@ -4329,7 +4332,7 @@ function readSkillDir(dir, scope) {
     if (!description) continue;
     if (data["disable-model-invocation"] === true) continue;
     skills.push({
-      id: entry,
+      id: `${idPrefix}${entry}`,
       name,
       description,
       scope,
@@ -4339,10 +4342,18 @@ function readSkillDir(dir, scope) {
   }
   return skills;
 }
+function syncedBuckets(dir) {
+  try {
+    return readdirSync(dir).filter((entry) => !entry.startsWith(".") && statSync(join(dir, entry)).isDirectory()).map((entry) => join(dir, entry));
+  } catch {
+    return [];
+  }
+}
 function loadSkills(roots = defaultSkillRoots()) {
   const byId = /* @__PURE__ */ new Map();
   for (const { dir, scope } of roots) {
-    for (const skill of readSkillDir(dir, scope)) {
+    const found = scope === "synced" ? syncedBuckets(dir).flatMap((bucket) => readSkillDir(bucket, "synced", `${SYNCED_NAMESPACE}:`)) : readSkillDir(dir, scope);
+    for (const skill of found) {
       if (!byId.has(skill.id)) byId.set(skill.id, skill);
     }
   }
@@ -4571,21 +4582,26 @@ try {
   const verdict = await runRoute({
     query: prompt,
     // This adapter's host is Claude Code, so route on the catalog Claude Code actually
-    // loads — personal ~/.claude/skills plus the project's .claude/skills up to the
-    // repo root — NOT runRoute's provider-neutral ~/.agents/skills default. A verdict
-    // drawn from the wrong store can never name (and the gate would then deny) skills
-    // the host really has.
+    // loads — personal ~/.claude/skills, the project's .claude/skills up to the repo
+    // root, and skills synced from claude.ai — NOT runRoute's provider-neutral
+    // ~/.agents/skills default. A verdict drawn from the wrong store can never name
+    // skills the host really has.
     skillRoots: defaultSkillRoots(projectCwd),
     transcript: recentTranscript(input.transcript_path) || void 0,
     configPath: existsSync4(projectConfig) ? projectConfig : void 0
   });
   const routerCliMs = Date.now() - routeStart;
   const promptLower = prompt.toLowerCase();
-  const slashNamed = Object.keys(verdict.probabilities).filter((id) => {
-    const at = promptLower.indexOf(`/${id.toLowerCase()}`);
+  const catalog = Object.keys(verdict.probabilities);
+  const typed = (name) => {
+    const at = promptLower.indexOf(`/${name.toLowerCase()}`);
     if (at === -1) return false;
-    const next = promptLower[at + id.length + 1];
+    const next = promptLower[at + name.length + 1];
     return next === void 0 || !/[a-z0-9-]/.test(next);
+  };
+  const slashNamed = catalog.filter((id) => {
+    const short = id.startsWith(`${SYNCED_NAMESPACE}:`) ? id.slice(SYNCED_NAMESPACE.length + 1) : null;
+    return typed(id) || short !== null && !catalog.includes(short) && typed(short);
   });
   for (const id of slashNamed) {
     if (!verdict.invoke.includes(id)) verdict.invoke.push(id);
@@ -4600,6 +4616,8 @@ try {
       suggest: verdict.suggest,
       prompt,
       ts: Date.now(),
+      // Every skill the router judged: the gate governs these and lets the rest pass.
+      catalog,
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,
