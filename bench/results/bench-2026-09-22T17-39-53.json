@@ -1,0 +1,1802 @@
+{
+  "meta": {
+    "date": "2026-09-22T17:39:53.590Z",
+    "model": "sonnet",
+    "reps": 3,
+    "maxTurns": 4,
+    "allowedTools": [
+      "Skill",
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "TodoWrite",
+      "Bash(git:*)"
+    ],
+    "settingSources": "project",
+    "gitSha": "2d381c2f3fb0c58eb0f61b9b2170b1d2e4f864cc",
+    "judgeType": "jev",
+    "installedSkillCount": 65,
+    "routableSkillCount": 63,
+    "preflightNotes": [
+      "~/.skillrouter.json: {\"judge\":\"jev\",\"alwaysAllow\":[\"git-commit\",\"model-routing\"]}",
+      "installed ~/.claude/skills: 65",
+      "routable skills (loadSkills): 63"
+    ],
+    "fixtures": [
+      {
+        "id": "commit-and-pr",
+        "expected": [
+          "git-commit",
+          "git-create-pr"
+        ],
+        "acceptable": []
+      },
+      {
+        "id": "build-animation",
+        "expected": [
+          "animate"
+        ],
+        "acceptable": []
+      },
+      {
+        "id": "a11y-widget",
+        "expected": [
+          "better-accessibility"
+        ],
+        "acceptable": [
+          "diagnosing-bugs"
+        ]
+      },
+      {
+        "id": "swift-concurrency",
+        "expected": [
+          "write-swift"
+        ],
+        "acceptable": []
+      },
+      {
+        "id": "design-doc-direction",
+        "expected": [
+          "impeccable"
+        ],
+        "acceptable": [
+          "better-colors",
+          "better-typography",
+          "apple-design",
+          "emil-design-eng",
+          "better-ui"
+        ]
+      },
+      {
+        "id": "no-skill-chat",
+        "expected": [],
+        "acceptable": []
+      }
+    ]
+  },
+  "runs": [
+    {
+      "fixture": "commit-and-pr",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "ee30b9c2-b871-4d52-8999-99b46ca2f657",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 21795,
+      "spawnToInitMs": 571,
+      "spawnToFirstAssistantMs": 4199,
+      "firstSkillMs": 8509,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_018RBArt6SGDkNJhFkwNgVHV",
+          "atMs": 8509,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 1,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 59,
+      "cacheReadTokens": 96048,
+      "cacheCreationTokens": 9480,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "commit-and-pr",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "100e999f-613d-4724-9ae1-1ca1a7a251f5",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 15157,
+      "spawnToInitMs": 1221,
+      "spawnToFirstAssistantMs": 3272,
+      "firstSkillMs": 3460,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_01WtoJdoUbx9GSWaSCBwULPW",
+          "atMs": 3460,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "git-commit",
+          "git-create-pr"
+        ],
+        "suggest": [],
+        "prompt": "commit the staged retry-logic changes with a proper conventional message, then push the branch and open a pr for review",
+        "ts": 1790098371022,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 351,
+        "hookWallMs": 551.261962890625,
+        "routerCliMs": 492
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 45,
+      "cacheReadTokens": 97534,
+      "cacheCreationTokens": 9621,
+      "hookWallMs": 551.261962890625,
+      "routerCliMs": 492,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "665f02d7-6091-42a2-8906-d407658dac7d",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 14551,
+      "spawnToInitMs": 559,
+      "spawnToFirstAssistantMs": 3438,
+      "firstSkillMs": 3704,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_017d8wUXYUC84DfS5vqnMAD4",
+          "atMs": 3704,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "animate"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 54,
+      "cacheReadTokens": 96853,
+      "cacheCreationTokens": 9037,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "af663059-2792-49ad-9df2-856208416ba2",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 3507,
+      "spawnToInitMs": 1153,
+      "spawnToFirstAssistantMs": 2859,
+      "firstSkillMs": 3041,
+      "allExpectedMs": 3185,
+      "skillCalls": [
+        {
+          "skill": "animate",
+          "toolUseId": "toolu_01UwSAHy4noCDjQKiB8FTr78",
+          "atMs": 3041,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "animate"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "animate",
+          "make-interfaces-feel-better",
+          "better-ui",
+          "impeccable",
+          "emil-design-eng",
+          "review-animations"
+        ],
+        "suggest": [],
+        "prompt": "the notification toast just pops into existence — build a proper enter and exit animation for it and pick the right curve and duration",
+        "ts": 1790098392946,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 326,
+        "hookWallMs": 530.486328125,
+        "routerCliMs": 469
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 8,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7308,
+      "hookWallMs": 530.486328125,
+      "routerCliMs": 469,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "46ea7c50-c2e2-41db-9f54-1c511dfd85de",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 17497,
+      "spawnToInitMs": 569,
+      "spawnToFirstAssistantMs": 2746,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "better-accessibility"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 20,
+      "outputTokens": 8,
+      "cacheReadTokens": 37786,
+      "cacheCreationTokens": 17936,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "156ab5b7-cae6-49b4-a0ad-fc0cc7f067bb",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 3792,
+      "spawnToInitMs": 1089,
+      "spawnToFirstAssistantMs": 2922,
+      "firstSkillMs": 3151,
+      "allExpectedMs": 3333,
+      "skillCalls": [
+        {
+          "skill": "better-accessibility",
+          "toolUseId": "toolu_013Tc2KEAPehqSb6Hourx4Jq",
+          "atMs": 3151,
+          "denied": false,
+          "resolved": true
+        },
+        {
+          "skill": "diagnosing-bugs",
+          "toolUseId": "toolu_011hE9568wabwhmNn5aB9kHQ",
+          "atMs": 3334,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "better-accessibility"
+      ],
+      "missed": [],
+      "acceptableInvoked": [
+        "diagnosing-bugs"
+      ],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "better-accessibility",
+          "diagnosing-bugs"
+        ],
+        "suggest": [
+          "brief"
+        ],
+        "prompt": "our custom combobox is broken for keyboard users and voiceover announces nothing — fix the focus management and aria wiring",
+        "ts": 1790098407614,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 268,
+        "hookWallMs": 478.4306640625,
+        "routerCliMs": 416
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7305,
+      "hookWallMs": 478.4306640625,
+      "routerCliMs": 416,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "37c2a07a-2073-472c-9829-76a3021b8f0e",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 11461,
+      "spawnToInitMs": 554,
+      "spawnToFirstAssistantMs": 2618,
+      "firstSkillMs": 11116,
+      "allExpectedMs": 11124,
+      "skillCalls": [
+        {
+          "skill": "write-swift",
+          "toolUseId": "toolu_018zzFUwC1gsVqk1tMTPuLGD",
+          "atMs": 11116,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "write-swift"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 2,
+      "tokensBeforeFirstSkill": 1,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 4,
+      "outputTokens": 9,
+      "cacheReadTokens": 43181,
+      "cacheCreationTokens": 7539,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "f2f843f5-4e6d-4469-8219-71bbeb758515",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 39132,
+      "spawnToInitMs": 1140,
+      "spawnToFirstAssistantMs": 3751,
+      "firstSkillMs": 3816,
+      "allExpectedMs": 38919,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_01BSApJt7ymrQRLP9zFB78XC",
+          "atMs": 3816,
+          "denied": false,
+          "resolved": true
+        },
+        {
+          "skill": "write-swift",
+          "toolUseId": "toolu_01HTsjj6Rman6AEnpkB35KAk",
+          "atMs": 38770,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "write-swift"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 4,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "write-swift",
+          "brief"
+        ],
+        "suggest": [],
+        "prompt": "migrate this module to swift 6 strict concurrency — fix the sendable warnings and decide what should be main-actor isolated versus moved onto an actor",
+        "ts": 1790098425340,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 289,
+        "hookWallMs": 507.706787109375,
+        "routerCliMs": 445
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 25,
+      "cacheReadTokens": 100758,
+      "cacheCreationTokens": 13054,
+      "hookWallMs": 507.706787109375,
+      "routerCliMs": 445,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "e363fa74-fff8-4f78-b8c4-e40f57cab592",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 17449,
+      "spawnToInitMs": 536,
+      "spawnToFirstAssistantMs": 2826,
+      "firstSkillMs": 2917,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_01CDa6oMPcMxEa3zGAtC5VaF",
+          "atMs": 2917,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "impeccable"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 43,
+      "cacheReadTokens": 97306,
+      "cacheCreationTokens": 10279,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "b54d3ddd-cc9c-439b-9877-38fa1b77431b",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 29087,
+      "spawnToInitMs": 1217,
+      "spawnToFirstAssistantMs": 6976,
+      "firstSkillMs": 28652,
+      "allExpectedMs": 28795,
+      "skillCalls": [
+        {
+          "skill": "impeccable",
+          "toolUseId": "toolu_01Ni48cZDtg9mfwyT1Vu8Anz",
+          "atMs": 28652,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "impeccable"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 4,
+      "tokensBeforeFirstSkill": 47,
+      "charsBeforeFirstSkillInMessage": 172,
+      "hookVerdict": {
+        "invoke": [
+          "impeccable",
+          "emil-design-eng",
+          "better-colors"
+        ],
+        "suggest": [
+          "better-typography"
+        ],
+        "prompt": "design the visual direction for the jev-skill-router recorded demo — philosophy, color tokens, type, motion principles — and write it to a design doc before any UI code",
+        "ts": 1790098464717,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 319,
+        "hookWallMs": 521.6982421875,
+        "routerCliMs": 464
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 6,
+      "outputTokens": 60,
+      "cacheReadTokens": 100624,
+      "cacheCreationTokens": 11410,
+      "hookWallMs": 521.6982421875,
+      "routerCliMs": 464,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "no-router",
+      "rep": 1,
+      "sessionId": "88e519fc-5b96-42e3-8227-0b5672962dab",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 10214,
+      "spawnToInitMs": 595,
+      "spawnToFirstAssistantMs": 4070,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": 0.038275449999999996,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7249,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "router",
+      "rep": 1,
+      "sessionId": "507104bd-0f0e-4202-9c03-33f77be9744e",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 11840,
+      "spawnToInitMs": 1127,
+      "spawnToFirstAssistantMs": 5219,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": {
+        "invoke": [],
+        "suggest": [
+          "teach"
+        ],
+        "prompt": "quick question while I have you — what does \"idempotent\" mean for HTTP methods, and why does it matter for retries? just explain, no code changes needed",
+        "ts": 1790098493898,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 297,
+        "hookWallMs": 499.177978515625,
+        "routerCliMs": 442
+      },
+      "contaminated": false,
+      "totalCostUsd": 0.038220449999999996,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7301,
+      "hookWallMs": 499.177978515625,
+      "routerCliMs": 442,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "commit-and-pr",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "989c4900-08b9-4971-a62f-7291bc01079c",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 13092,
+      "spawnToInitMs": 530,
+      "spawnToFirstAssistantMs": 3488,
+      "firstSkillMs": 3678,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_01UczgCaFVQP2dvbUCKaDkyE",
+          "atMs": 3678,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 45,
+      "cacheReadTokens": 97343,
+      "cacheCreationTokens": 9366,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "commit-and-pr",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "12733b69-993c-427e-b237-9e38bcd1f8c0",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 12512,
+      "spawnToInitMs": 1077,
+      "spawnToFirstAssistantMs": 3059,
+      "firstSkillMs": 3257,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_01G5Es7Txx2unYKEU9G3WZau",
+          "atMs": 3257,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "git-commit",
+          "git-create-pr"
+        ],
+        "suggest": [],
+        "prompt": "commit the staged retry-logic changes with a proper conventional message, then push the branch and open a pr for review",
+        "ts": 1790098505862,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 302,
+        "hookWallMs": 495.053466796875,
+        "routerCliMs": 439
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 39,
+      "cacheReadTokens": 97511,
+      "cacheCreationTokens": 9576,
+      "hookWallMs": 495.053466796875,
+      "routerCliMs": 439,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "dd6d9316-f833-49e7-ac50-e6de04db6b09",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 18626,
+      "spawnToInitMs": 537,
+      "spawnToFirstAssistantMs": 2863,
+      "firstSkillMs": 3007,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "impeccable",
+          "toolUseId": "toolu_01Xur5k94zXAu8Sts3d1S24S",
+          "atMs": 3007,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "animate"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "impeccable"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 8,
+      "outputTokens": 31,
+      "cacheReadTokens": 99670,
+      "cacheCreationTokens": 10637,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "17e43da1-10d2-4593-8ed5-32c9024cb79b",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 19348,
+      "spawnToInitMs": 1097,
+      "spawnToFirstAssistantMs": 3475,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "animate"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": {
+        "invoke": [
+          "animate",
+          "better-ui",
+          "make-interfaces-feel-better",
+          "impeccable",
+          "emil-design-eng",
+          "review-animations"
+        ],
+        "suggest": [],
+        "prompt": "the notification toast just pops into existence — build a proper enter and exit animation for it and pick the right curve and duration",
+        "ts": 1790098519148,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 306,
+        "hookWallMs": 498.384033203125,
+        "routerCliMs": 444
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 20,
+      "outputTokens": 7,
+      "cacheReadTokens": 44085,
+      "cacheCreationTokens": 12072,
+      "hookWallMs": 498.384033203125,
+      "routerCliMs": 444,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "799f2b65-822b-419c-ab84-c2e78f031a23",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 54205,
+      "spawnToInitMs": 564,
+      "spawnToFirstAssistantMs": 3088,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "better-accessibility"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 4,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": 0.11880865,
+      "inputTokens": 6,
+      "outputTokens": 35,
+      "cacheReadTokens": 94178,
+      "cacheCreationTokens": 10483,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "2ab2e05d-26d0-4437-9ae8-617f2a2baf45",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 17856,
+      "spawnToInitMs": 1104,
+      "spawnToFirstAssistantMs": 3386,
+      "firstSkillMs": 3583,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "diagnosing-bugs",
+          "toolUseId": "toolu_011cBboPW6YbNhrggoGWcxUe",
+          "atMs": 3583,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "better-accessibility"
+      ],
+      "acceptableInvoked": [
+        "diagnosing-bugs"
+      ],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "better-accessibility",
+          "diagnosing-bugs"
+        ],
+        "suggest": [
+          "brief"
+        ],
+        "prompt": "our custom combobox is broken for keyboard users and voiceover announces nothing — fix the focus management and aria wiring",
+        "ts": 1790098538684,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 300,
+        "hookWallMs": 501.3544921875,
+        "routerCliMs": 445
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 15,
+      "outputTokens": 11,
+      "cacheReadTokens": 59777,
+      "cacheCreationTokens": 12999,
+      "hookWallMs": 501.3544921875,
+      "routerCliMs": 445,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "ebd12757-2b80-4d11-853b-a89daccb1bf8",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 39519,
+      "spawnToInitMs": 558,
+      "spawnToFirstAssistantMs": 2210,
+      "firstSkillMs": 39240,
+      "allExpectedMs": 39268,
+      "skillCalls": [
+        {
+          "skill": "write-swift",
+          "toolUseId": "toolu_01KbzkaZJepZK7rAbcSqw9Wd",
+          "atMs": 39240,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "write-swift"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 4,
+      "tokensBeforeFirstSkill": 17,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 6,
+      "outputTokens": 29,
+      "cacheReadTokens": 95203,
+      "cacheCreationTokens": 8874,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "ec583caa-2ee0-4129-8a5b-316322ee5986",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 4766,
+      "spawnToInitMs": 1246,
+      "spawnToFirstAssistantMs": 3763,
+      "firstSkillMs": 3954,
+      "allExpectedMs": 4254,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_01BADn6JbkUvkPDJEFVZdiW1",
+          "atMs": 3954,
+          "denied": false,
+          "resolved": true
+        },
+        {
+          "skill": "write-swift",
+          "toolUseId": "toolu_01Mp6LteAoSiRjPes8UdzXMg",
+          "atMs": 4135,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "write-swift"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "write-swift",
+          "brief"
+        ],
+        "suggest": [],
+        "prompt": "migrate this module to swift 6 strict concurrency — fix the sendable warnings and decide what should be main-actor isolated versus moved onto an actor",
+        "ts": 1790098593208,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 301,
+        "hookWallMs": 518.912109375,
+        "routerCliMs": 452
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7289,
+      "hookWallMs": 518.912109375,
+      "routerCliMs": 452,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "3c7447bc-77a6-45dc-a371-130d0e556c29",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 13590,
+      "spawnToInitMs": 581,
+      "spawnToFirstAssistantMs": 2918,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "impeccable"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 18,
+      "outputTokens": 8,
+      "cacheReadTokens": 44445,
+      "cacheCreationTokens": 10650,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "58123bac-5de6-4abb-a2d2-b106278c053c",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 5504,
+      "spawnToInitMs": 1176,
+      "spawnToFirstAssistantMs": 4245,
+      "firstSkillMs": 4919,
+      "allExpectedMs": 5105,
+      "skillCalls": [
+        {
+          "skill": "impeccable",
+          "toolUseId": "toolu_01FDT1ifC3jCkEfiZtmxutR1",
+          "atMs": 4919,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "impeccable"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 109,
+      "hookVerdict": {
+        "invoke": [
+          "impeccable",
+          "emil-design-eng",
+          "better-colors"
+        ],
+        "suggest": [],
+        "prompt": "design the visual direction for the jev-skill-router recorded demo — philosophy, color tokens, type, motion principles — and write it to a design doc before any UI code",
+        "ts": 1790098632840,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 333,
+        "hookWallMs": 539.191650390625,
+        "routerCliMs": 478
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7303,
+      "hookWallMs": 539.191650390625,
+      "routerCliMs": 478,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "no-router",
+      "rep": 2,
+      "sessionId": "1d1179de-1125-41ae-a6bf-cdb451945a16",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 9670,
+      "spawnToInitMs": 693,
+      "spawnToFirstAssistantMs": 9158,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": 0.038275449999999996,
+      "inputTokens": 3,
+      "outputTokens": 7,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7249,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "router",
+      "rep": 2,
+      "sessionId": "45e42a70-f434-4d91-9bf0-08b41e52dcaf",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 13393,
+      "spawnToInitMs": 1378,
+      "spawnToFirstAssistantMs": 4709,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": {
+        "invoke": [],
+        "suggest": [
+          "teach"
+        ],
+        "prompt": "quick question while I have you — what does \"idempotent\" mean for HTTP methods, and why does it matter for retries? just explain, no code changes needed",
+        "ts": 1790098647111,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 303,
+        "hookWallMs": 611.354736328125,
+        "routerCliMs": 520
+      },
+      "contaminated": false,
+      "totalCostUsd": 0.03961795,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7303,
+      "hookWallMs": 611.354736328125,
+      "routerCliMs": 520,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "commit-and-pr",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "ab68e4dd-3916-4cc1-9115-2642a64e7a28",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 16422,
+      "spawnToInitMs": 667,
+      "spawnToFirstAssistantMs": 6139,
+      "firstSkillMs": 6296,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_01VHo8kr6JQEtjKq5ZjTiu6o",
+          "atMs": 6296,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 55,
+      "cacheReadTokens": 97199,
+      "cacheCreationTokens": 9303,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "commit-and-pr",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "0314992e-3bcb-41fc-97c9-014625c0f921",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 17795,
+      "spawnToInitMs": 1301,
+      "spawnToFirstAssistantMs": 4394,
+      "firstSkillMs": 4572,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "git-commit",
+          "toolUseId": "toolu_01PgPLNggg1w35HGeHNW1GL6",
+          "atMs": 4572,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "git-commit"
+      ],
+      "missed": [
+        "git-create-pr"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "git-commit",
+          "git-create-pr"
+        ],
+        "suggest": [],
+        "prompt": "commit the staged retry-logic changes with a proper conventional message, then push the branch and open a pr for review",
+        "ts": 1790098660672,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 289,
+        "hookWallMs": 535.701171875,
+        "routerCliMs": 462
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 38,
+      "cacheReadTokens": 97494,
+      "cacheCreationTokens": 9569,
+      "hookWallMs": 535.701171875,
+      "routerCliMs": 462,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "014086c9-1cf9-4463-904e-72907be30178",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 17213,
+      "spawnToInitMs": 575,
+      "spawnToFirstAssistantMs": 3401,
+      "firstSkillMs": 3682,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_01FjHUv8nZhyxst6NyP1tZGc",
+          "atMs": 3682,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "animate"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 7,
+      "outputTokens": 58,
+      "cacheReadTokens": 96847,
+      "cacheCreationTokens": 9087,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "build-animation",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "8fb2e210-c23f-4a8b-ace6-347b5af0b8b0",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 3759,
+      "spawnToInitMs": 1154,
+      "spawnToFirstAssistantMs": 2897,
+      "firstSkillMs": 3076,
+      "allExpectedMs": 3237,
+      "skillCalls": [
+        {
+          "skill": "animate",
+          "toolUseId": "toolu_01VfaLp8qTybuhDdrHZfvKeK",
+          "atMs": 3076,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "animate"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "animate",
+          "better-ui",
+          "make-interfaces-feel-better",
+          "impeccable",
+          "emil-design-eng",
+          "review-animations"
+        ],
+        "suggest": [],
+        "prompt": "the notification toast just pops into existence — build a proper enter and exit animation for it and pick the right curve and duration",
+        "ts": 1790098678510,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 311,
+        "hookWallMs": 520.184814453125,
+        "routerCliMs": 458
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7305,
+      "hookWallMs": 520.184814453125,
+      "routerCliMs": 458,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "21c7806c-369e-4143-a346-83ce0aa2b067",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 16443,
+      "spawnToInitMs": 542,
+      "spawnToFirstAssistantMs": 2402,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "better-accessibility"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 19,
+      "outputTokens": 6,
+      "cacheReadTokens": 44488,
+      "cacheCreationTokens": 10860,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "a11y-widget",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "2d820b31-8f8a-4e85-a02e-f9ee5231109f",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 19127,
+      "spawnToInitMs": 1232,
+      "spawnToFirstAssistantMs": 3951,
+      "firstSkillMs": 4187,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_018bVYW2N8nHZawXubTheHuC",
+          "atMs": 4187,
+          "denied": false,
+          "resolved": true
+        },
+        {
+          "skill": "diagnosing-bugs",
+          "toolUseId": "toolu_012fZwSyJRo19NaBNY85LokQ",
+          "atMs": 4424,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "better-accessibility"
+      ],
+      "acceptableInvoked": [
+        "diagnosing-bugs"
+      ],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "better-accessibility",
+          "diagnosing-bugs",
+          "brief"
+        ],
+        "suggest": [],
+        "prompt": "our custom combobox is broken for keyboard users and voiceover announces nothing — fix the focus management and aria wiring",
+        "ts": 1790098695977,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 375,
+        "hookWallMs": 587.519775390625,
+        "routerCliMs": 523
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 14,
+      "outputTokens": 13,
+      "cacheReadTokens": 59804,
+      "cacheCreationTokens": 14276,
+      "hookWallMs": 587.519775390625,
+      "routerCliMs": 523,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "a503b9dd-d41e-4e6c-8c7c-9cf84027ed4b",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 50650,
+      "spawnToInitMs": 581,
+      "spawnToFirstAssistantMs": 3772,
+      "firstSkillMs": 50387,
+      "allExpectedMs": 50407,
+      "skillCalls": [
+        {
+          "skill": "write-swift",
+          "toolUseId": "toolu_012NwN48cYHZkn2c7VDf6FsT",
+          "atMs": 50387,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "write-swift"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 26,
+      "charsBeforeFirstSkillInMessage": 216,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 15,
+      "outputTokens": 34,
+      "cacheReadTokens": 85349,
+      "cacheCreationTokens": 10948,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "swift-concurrency",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "b47a61cb-b014-4199-807e-b6a71aa4e5ef",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 13535,
+      "spawnToInitMs": 1134,
+      "spawnToFirstAssistantMs": 3738,
+      "firstSkillMs": 3868,
+      "allExpectedMs": null,
+      "skillCalls": [
+        {
+          "skill": "brief",
+          "toolUseId": "toolu_01KE6m3iQTzkYW7Xs8kbNLqp",
+          "atMs": 3868,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [],
+      "missed": [
+        "write-swift"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [
+        "brief"
+      ],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "write-swift",
+          "brief"
+        ],
+        "suggest": [],
+        "prompt": "migrate this module to swift 6 strict concurrency — fix the sendable warnings and decide what should be main-actor isolated versus moved onto an actor",
+        "ts": 1790098715194,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 273,
+        "hookWallMs": 476.01953125,
+        "routerCliMs": 417
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 8,
+      "outputTokens": 80,
+      "cacheReadTokens": 124647,
+      "cacheCreationTokens": 9688,
+      "hookWallMs": 476.01953125,
+      "routerCliMs": 417,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "1b18f147-799b-43dd-b48a-2e8c36f60c65",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "turn-cap",
+      "durationMs": 15460,
+      "spawnToInitMs": 554,
+      "spawnToFirstAssistantMs": 2765,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [
+        "impeccable"
+      ],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 5,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 19,
+      "outputTokens": 6,
+      "cacheReadTokens": 44564,
+      "cacheCreationTokens": 11014,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "design-doc-direction",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "ed49c688-3058-4426-bd76-4958efbd8003",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "expected-satisfied",
+      "durationMs": 5098,
+      "spawnToInitMs": 1164,
+      "spawnToFirstAssistantMs": 4313,
+      "firstSkillMs": 4459,
+      "allExpectedMs": 4608,
+      "skillCalls": [
+        {
+          "skill": "impeccable",
+          "toolUseId": "toolu_01CQ3fLXdDz7wdcsHu8jnYu5",
+          "atMs": 4459,
+          "denied": false,
+          "resolved": true
+        }
+      ],
+      "hits": [
+        "impeccable"
+      ],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": 0,
+      "charsBeforeFirstSkillInMessage": 0,
+      "hookVerdict": {
+        "invoke": [
+          "impeccable",
+          "emil-design-eng",
+          "better-colors"
+        ],
+        "suggest": [
+          "better-typography"
+        ],
+        "prompt": "design the visual direction for the jev-skill-router recorded demo — philosophy, color tokens, type, motion principles — and write it to a design doc before any UI code",
+        "ts": 1790098766030,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 339,
+        "hookWallMs": 530.98291015625,
+        "routerCliMs": 474
+      },
+      "contaminated": false,
+      "totalCostUsd": null,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7316,
+      "hookWallMs": 530.98291015625,
+      "routerCliMs": 474,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "no-router",
+      "rep": 3,
+      "sessionId": "808e1fba-546d-43b0-8648-62ee413fd64b",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 9194,
+      "spawnToInitMs": 511,
+      "spawnToFirstAssistantMs": 2245,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": null,
+      "contaminated": false,
+      "totalCostUsd": 0.03911295,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7243,
+      "hookWallMs": null,
+      "routerCliMs": null,
+      "stderrTail": ""
+    },
+    {
+      "fixture": "no-skill-chat",
+      "arm": "router",
+      "rep": 3,
+      "sessionId": "ebcd5d1f-16ec-4d23-a07e-88435d1838a2",
+      "model": "claude-sonnet-4-6",
+      "endedBy": "completed",
+      "durationMs": 13064,
+      "spawnToInitMs": 1064,
+      "spawnToFirstAssistantMs": 4494,
+      "firstSkillMs": null,
+      "allExpectedMs": null,
+      "skillCalls": [],
+      "hits": [],
+      "missed": [],
+      "acceptableInvoked": [],
+      "junkInvoked": [],
+      "deniedCount": 0,
+      "assistantTurns": 1,
+      "tokensBeforeFirstSkill": null,
+      "charsBeforeFirstSkillInMessage": null,
+      "hookVerdict": {
+        "invoke": [],
+        "suggest": [
+          "teach"
+        ],
+        "prompt": "quick question while I have you — what does \"idempotent\" mean for HTTP methods, and why does it matter for retries? just explain, no code changes needed",
+        "ts": 1790098781570,
+        "judge": "jev",
+        "judgedCount": 48,
+        "latencyMs": 310,
+        "hookWallMs": 499.716064453125,
+        "routerCliMs": 445
+      },
+      "contaminated": false,
+      "totalCostUsd": 0.0397417,
+      "inputTokens": 3,
+      "outputTokens": 1,
+      "cacheReadTokens": 17969,
+      "cacheCreationTokens": 7296,
+      "hookWallMs": 499.716064453125,
+      "routerCliMs": 445,
+      "stderrTail": ""
+    }
+  ]
+}
