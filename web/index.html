@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Skill Routing with Jev, a Recorded Evaluation Report</title>
   <meta name="description" content="Real Jev routing runs over a real skill catalog, recorded to JSON and replayed verbatim with thresholds, misses, and latencies included." />
+  <link rel="preload" href="fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/courier-prime-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#fig-mechanism">Skip to the report</a>
   <main class="report">
     <header class="masthead" id="top">
       <p class="masthead-series">jev-skill-router · recorded evaluation</p>
@@ -27,7 +30,7 @@
           <div class="terminal terminal-stock">
             <p class="terminal-label terminal-label-row">
               <span id="stock-model">Just a coding agent · fable</span>
-              <span class="rotor-dots" id="stock-dots" aria-hidden="true"></span>
+              <span class="rotor-dots" id="stock-dots" role="group" aria-label="Recorded stock runs"></span>
             </p>
             <pre class="terminal-out" id="stock-out">● Skill(better-accessibility)
 <span class="term-dim">  ⎿  Launching skill: better-accessibility</span>
@@ -53,7 +56,7 @@
 
     <figure class="figure" id="fig-mechanism">
       <figcaption class="figure-head">
-        <span class="figure-title">Mechanism</span>
+        <h2 class="figure-title">Mechanism</h2>
         <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="mech-date"></time></span>
       </figcaption>
       <p class="figure-note">One real turn over a real catalog of <span id="mech-cat"></span> installed
@@ -79,24 +82,24 @@
 
     <figure class="figure" id="fig-routing">
       <figcaption class="figure-head">
-        <span class="figure-title">Catalog</span>
+        <h2 class="figure-title">Catalog</h2>
         <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="fig1-date"></time></span>
       </figcaption>
       <div class="fixture-tabs" id="fixture-tabs" role="tablist" aria-label="Recorded sessions"></div>
       <blockquote class="query" id="fig1-query"></blockquote>
       <p class="fixture-type" id="fig1-type"></p>
-      <div class="tablewrap" id="run-tablewrap">
-        <div class="run-table" id="run-table" aria-live="polite"></div>
+      <div class="tablewrap" id="run-tablewrap" role="tabpanel">
+        <div class="run-table" id="run-table"></div>
       </div>
       <ul class="figure-legend" id="fig1-legend"></ul>
       <aside class="annotation" id="fig1-annotation" hidden></aside>
       <div class="threshold-key" id="threshold-key"></div>
-      <aside class="annotation annotation-conclusion" id="fig1-conclusion"></aside>
+      <aside class="annotation annotation-conclusion" id="fig1-conclusion" aria-live="polite"></aside>
     </figure>
 
     <figure class="figure" id="fig-scale">
       <figcaption class="figure-head">
-        <span class="figure-title">Scale</span>
+        <h2 class="figure-title">Scale</h2>
         <span class="figure-stamp"><span class="stamp-label">recorded</span> <time id="fig3-date"></time></span>
       </figcaption>
       <p class="figure-note">
@@ -106,10 +109,12 @@
         The catalog is packed with near-identical siblings, and in every recorded run the top
         score still lands on a correct skill.
       </p>
-      <div class="fixture-tabs" id="scale-tabs" role="tablist" aria-label="Recorded scale runs"></div>
+      <div class="fixture-tabs" id="scale-tabrow">
+        <div class="tab-list" id="scale-tabs" role="tablist" aria-label="Recorded scale runs"></div>
+      </div>
       <blockquote class="query" id="fig3-query"></blockquote>
       <p class="fixture-type" id="fig3-type"></p>
-      <div class="tablewrap" id="scale-tablewrap">
+      <div class="tablewrap" id="scale-tablewrap" role="tabpanel">
         <div class="run-table run-table-compact" id="scale-table"></div>
       </div>
       <ul class="figure-legend" id="fig3-legend"></ul>
@@ -118,12 +123,12 @@
 
     <figure class="figure" id="table-doctor">
       <figcaption class="figure-head">
-        <span class="figure-title">Doctor</span>
+        <h2 class="figure-title">Doctor</h2>
         <span class="figure-stamp"><span class="stamp-label">recorded</span> <time datetime="2026-09-22">2026-09-22</time></span>
       </figcaption>
       <p class="figure-note">
         By convention a skill declares what it does and when to run in its SKILL.md
-        description, and that field is everything the router and the doctor see. Each skill's
+        description, and that field is everything the router and the doctor see. Each skill’s
         own description is routed against the whole catalog, so co-invocation on its home
         territory is measured confusion. Every finding names its evidence and exactly one
         action. This is the control surface for the co-invocation Catalog reports.
@@ -136,10 +141,10 @@
 
     <footer class="colophon">
       <p>
-        This page is a static artifact. It renders <span class="notation">web/data/replays.json</span> and
-        <span class="notation">web/data/doctor.json</span>, generated from
-        <span class="notation">fixtures/recordings/</span>
-        by the same <span class="notation">route()</span> and doctor pipelines the benchmarks
+        This page is a static artifact. It renders <a href="data/replays.json"><span class="notation" translate="no">web/data/replays.json</span></a> and
+        <a href="data/doctor.json"><span class="notation" translate="no">web/data/doctor.json</span></a>, generated from
+        <span class="notation" translate="no">fixtures/recordings/</span>
+        by the same <span class="notation" translate="no">route()</span> and doctor pipelines the benchmarks
         drive. No API key exists here. Verify by
         <a href="https://github.com/abgregs/jev-skill-router">reading the source</a>.
       </p>

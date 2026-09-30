@@ -134,6 +134,12 @@ ink density, and selected is the heaviest overprint. **Blue is annotation** (lin
 margin notes, footnote daggers). Bands and marks are never distinguished by color
 alone — every one carries a text label (INVOKE / SUGGEST / — / MISSED / REJECTED).
 
+Red's other sanctioned uses, each a measurement being verified rather than a
+selection: the Mechanism replay's ms counter (the recorded clock is the claim under
+test), the invoke guide's value tag (`0.85`, printed at the guide's head; the suggest
+tag stays ghost ink), and the doctor's collision / duplicate / overlap tags (findings
+that grade the catalog). Nothing else earns red.
+
 Red-mark curation rule: red may only mark a row the eval *deliberately tested* — decoys
 come from named data (synthetic: the highest-scoring same-family sibling variants of
 the truth — look-alikes that actually competed — capped at the few highest, plus
@@ -188,12 +194,15 @@ Fallbacks: `Archivo, system-ui, sans-serif` · `"Courier Prime", ui-monospace, M
 | Role | Face | Size | Notes |
 | --- | --- | --- | --- |
 | Report masthead | Archivo 600, wdth 125 | clamp(28px, 4.5vw, 40px) / 1.1 | caps, letter-spacing 0.02em |
-| Section head (`FIG. 1 — REAL CATALOG, 48 SKILLS`) | Archivo 600 | 13px / 1.3 | caps, letter-spacing 0.08em |
-| Abstract / prose | Archivo 400 | 16px / 1.6 | measure ≤ 68ch |
+| Section head (`<h2>`: MECHANISM, CATALOG, …) | Archivo 600, wdth 125 | 14px / 1.3 | caps, letter-spacing 0.06em; the masthead's cover register at label size |
+| Section lede (the note under a head) | Archivo 400 | 16px / 1.6 | measure ≤ 68ch |
+| Captions, annotations, legends, later notes | Archivo 400 | 13–14px / 1.55 | secondary ink or annotation blue |
 | Table data (probabilities, skill names) | Courier Prime 400 | 14px / 1.5 | numbers align by monospace |
 | Emphasized datum (selected p) | Courier Prime 700 | 14px / 1.5 | weight, not size |
 | Head stamp date | Courier Prime 400 | 12px / 1.5 | `--color-text-secondary`; stamp label in Archivo 500 11px caps ghost |
-| Figure axis / band labels | Archivo 500 | 12px / 1.3 | caps, letter-spacing 0.06em |
+| Figure axis / band labels, tags | Archivo 500–600 | 11px / 1.3 | caps, letter-spacing 0.06em; the floor, nothing prints smaller |
+| Terminal transcripts, quoted doctor actions | Courier Prime 400 | 13px / 1.5 | quoted tool output is evidence, so it takes the mono face |
+| Guide value tags (`0.80`, `0.85`) | Courier Prime 400 | 11px / 1 | at each guide's head; suggest ghost, invoke threshold red |
 
 Hierarchy comes from caps, rules, numbering, and ink density — not from oversized
 display type. Probabilities print with two decimals always (`0.90`, `0.05`); a column
@@ -295,6 +304,12 @@ the motion because the conclusions carry it.
   default (better observed outcomes, priced in tokens); the doctor names the overlap
   at its source (TABLE 3 carries the duplicate twins that both fire 0.97 here), and
   `exclude` / "Not for" clauses / `threshold` are the user's dials.
+- **FIG. 1 opens on the worked example** (`build-animation`), never on the
+  Mechanism's run again. Rows follow the Mechanism's pattern: every banded row plus
+  the top of the tail (at least 12), "… N more judged below" with a *show all* toggle,
+  and marked rows below the cut pulled up at their true rank, so the cut hides no
+  evidence. The selected Catalog and Scale tabs live in the query string
+  (`?catalog=…&scale=…`), so a reload or a shared link lands on the same runs.
 - **Two bands, two speech acts.** The invoke band is a command; the suggest band is a
   menu (verified live: models obey the first wholesale and consult the second exactly
   when needed). The figure must render that difference: INVOKE rows in solid ink on

@@ -60,7 +60,7 @@
 
 * { box-sizing: border-box; }
 
-html { background: var(--color-bg-page); }
+html { background: var(--color-bg-page); color-scheme: light; }
 
 body {
   margin: 0;
@@ -71,7 +71,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-::selection { background: var(--color-invoke-wash); color: var(--color-invoke-ink); }
+/* inverted ink: the page's own selected idiom (tabs, chips), legible on every ground */
+::selection { background: var(--color-text-primary); color: var(--color-bg-page); }
 
 a { color: var(--color-annotation); text-underline-offset: 3px; }
 
@@ -95,6 +96,21 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   outline: 2px solid var(--color-annotation);
   outline-offset: 2px;
 }
+
+/* focusable controls clear the sticky nav when focus scrolls them into view */
+.tab, .run-name, .btn-replay, .link-flip, .rotor-dot { scroll-margin-top: 64px; }
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 20;
+  padding: 8px 12px;
+  background: var(--color-text-primary);
+  color: var(--color-bg-page);
+  font-size: 13px;
+}
+.skip-link:focus { top: 12px; }
 
 .report {
   /* 960px content inside 24px pads — the contract's full-bleed figure width;
@@ -124,14 +140,9 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   line-height: 1.1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  text-wrap: balance;
 }
-.notation { font-family: var(--mono); font-size: 0.92em; }
-.receipt {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
+.notation { font-family: var(--mono); font-size: 0.92em; white-space: nowrap; }
 
 /* ---- figures ---- */
 
@@ -150,9 +161,15 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   font-size: 13px;
   font-weight: 600;
 }
-/* caps are scoped to the short title — never the whole head row */
+/* caps are scoped to the short title — never the whole head row. The expanded width
+   ties each section head to the masthead's cover register (DESIGN §3). */
 .figure-title {
-  letter-spacing: 0.08em;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-stretch: 125%;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   flex: none;
 }
@@ -183,6 +200,8 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   font-size: 14px;
   color: var(--color-text-secondary);
 }
+/* each section's lede is prose at the contract's 16px; later notes stay captions */
+.figure-head + .figure-note { font-size: 16px; }
 .figure-legend {
   margin: 0 16px 10px;
   padding: 0;
@@ -202,6 +221,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   gap: 6px;
   padding: 12px 16px 0;
 }
+.tab-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tab {
   appearance: none;
   border: 1px solid var(--color-rule-strong);
@@ -212,7 +232,9 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   line-height: 1;
   padding: 7px 10px;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out), background-color 150ms ease;
+  touch-action: manipulation;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease, color 150ms ease,
+    border-color 150ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .tab:hover { background: var(--color-bg-hover); }
@@ -262,11 +284,13 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 
 /* ---- the run table ---- */
 
-.run-table { padding: 14px 16px 4px; }
+/* the top pad holds the guides' value tags */
+.run-table { padding: 24px 16px 4px; }
 
 .run-row {
   display: grid;
-  grid-template-columns: minmax(140px, 200px) 1fr 52px 72px;
+  /* wide enough for the longest real name plus its mark: the bar compresses first */
+  grid-template-columns: minmax(140px, 248px) 1fr 52px 72px;
   gap: 12px;
   align-items: center;
   padding: 3px 0;
@@ -274,6 +298,8 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   font-size: 14px;
   line-height: 1.5;
 }
+/* synthetic names run long and differ only at the end — give them the room */
+#scale-table .run-row { grid-template-columns: minmax(180px, 340px) 1fr 52px 72px; }
 .run-row + .run-row,
 .run-desc + .run-row { border-top: 1px dotted var(--color-rule); }
 
@@ -286,6 +312,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   font: inherit;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
   /* the name truncates in its own span; marks and rank sit outside it and never clip */
   display: flex;
   align-items: baseline;
@@ -293,16 +320,20 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   min-width: 0;
   color: var(--color-text-ghost);
 }
+/* dotted underline: the print convention for a defined term, and the cue that the
+   name opens its description */
 .run-name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: underline dotted var(--color-rule);
+  text-underline-offset: 3px;
 }
 .run-name .run-rank,
 .run-name .run-truth,
 .run-name .run-verify { flex: none; }
 @media (hover: hover) and (pointer: fine) {
-  .run-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .run-name:hover .run-name-text { text-decoration-color: var(--color-rule-strong); }
 }
 .run-rank { color: var(--color-text-ghost); font-weight: 400; }
 .run-desc {
@@ -333,6 +364,16 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 }
 .guide-suggest { background: var(--color-rule-strong); }
 .guide-invoke { background: var(--color-threshold); }
+/* each guide's value, tagged at its head: suggest reads left, invoke right */
+.guide-tag {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+.guide-tag-suggest { transform: translateX(calc(-100% - 4px)); color: var(--color-text-ghost); }
+.guide-tag-invoke { transform: translateX(4px); color: var(--color-threshold); }
 .run-p { text-align: right; color: var(--color-text-ghost); }
 .run-band {
   font-size: 11px;
@@ -443,8 +484,8 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 @media (max-width: 640px) {
   .report { padding: 40px 16px 64px; }
   /* bands are first-class: the bar compresses before the label goes */
-  .run-row { grid-template-columns: minmax(90px, 130px) 1fr 42px 56px; gap: 8px; font-size: 13px; }
-  .run-band { font-size: 10px; }
+  .run-row,
+  #scale-table .run-row { grid-template-columns: minmax(90px, 130px) 1fr 42px 56px; gap: 8px; font-size: 13px; }
 }
 
 /* ---- colophon ---- */
@@ -501,13 +542,17 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   text-transform: uppercase;
   padding: 8px 14px;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out);
+  touch-action: manipulation;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-replay:hover { background: var(--color-text-secondary); border-color: var(--color-text-secondary); }
 }
 .btn-replay:active { transform: scale(0.97); }
 .btn-replay-inline {
-  padding: 6px 10px;
+  padding: 8px 12px;
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* square knob on a hairline track — paper and square edges, no pill chrome */
@@ -563,6 +608,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 /* ---- Table 3: doctor findings ---- */
@@ -570,8 +616,11 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 .doctor-table { padding: 6px 16px 10px; }
 .doctor-row { padding: 10px 0; }
 .doctor-row + .doctor-row { border-top: 1px dotted var(--color-rule); }
+/* hanging indent: a wrapped skill list aligns under the evidence, not the number */
 .doctor-head {
   margin: 0 0 4px;
+  padding-left: 28px;
+  text-indent: -28px;
   font-family: var(--mono);
   font-size: 14px;
   color: var(--color-text-primary);
@@ -579,6 +628,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 .doctor-no { color: var(--color-text-ghost); margin-right: 10px; }
 .doctor-tag {
   display: inline-block;
+  text-indent: 0; /* inline-blocks inherit the head's hanging indent otherwise */
   margin-right: 10px;
   font-family: var(--sans);
   font-size: 11px;
@@ -599,8 +649,10 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   color: var(--color-text-secondary);
   max-width: 74ch;
 }
+/* the action is quoted doctor output, so it prints in the evidence face */
 .doctor-action {
   margin: 0 0 0 28px;
+  font-family: var(--mono);
   font-size: 13px;
   line-height: 1.5;
   color: var(--color-annotation);
@@ -608,6 +660,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 }
 .doctor-action-label {
   margin-right: 6px;
+  font-family: var(--sans);
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -642,7 +695,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 .terminal-out {
   margin: 0 0 10px;
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: break-word;
@@ -723,13 +776,28 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   justify-content: space-between;
   gap: 8px;
 }
-.rotor-dots { display: flex; gap: 4px; }
+/* each dot is a button: its padding is the hit area, the square is the mark */
+.rotor-dots { display: flex; margin: -5px; }
 .rotor-dot {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 5px;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.rotor-dot::before {
+  content: '';
+  display: block;
   width: 6px;
   height: 6px;
   background: var(--color-rule);
 }
-.rotor-dot-current { background: var(--color-text-ghost); }
+.rotor-dot-current::before { background: var(--color-text-ghost); }
+@media (hover: hover) and (pointer: fine) {
+  .rotor-dot:hover::before { background: var(--color-text-secondary); }
+}
 
 /* blue = annotation: the interpretive callout, anchored to the card's foot so the
    two conclusions line up side by side whatever the transcript above is doing */
@@ -739,7 +807,7 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   padding: 8px 10px;
   border-left: 2px solid var(--color-annotation);
   background: var(--color-annotation-wash);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--color-annotation);
 }
@@ -779,7 +847,9 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   line-height: 1;
   padding: 7px 10px;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out), background-color 150ms ease;
+  touch-action: manipulation;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease, color 150ms ease,
+    border-color 150ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .navbtn:hover:not(:disabled) { background: var(--color-bg-hover); }
@@ -807,6 +877,10 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 @media (max-width: 640px) {
   .mech-controls .scrub { max-width: none; }
   .doctor-evidence, .doctor-action { margin-left: 0; }
+  /* the sticky nav stays one row tall on a phone */
+  .spotlight { gap: 4px; }
+  .spot-chips { gap: 4px; }
+  .spot-chip { padding: 7px 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
