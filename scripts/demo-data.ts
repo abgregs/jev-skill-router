@@ -1,6 +1,7 @@
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { route, applyPolicy, createRecordedJudge, runFromEvalRecording } from '../lib/router/index.js'
@@ -283,7 +284,10 @@ async function main(): Promise<void> {
     )
     doctor.composition.catalogSize = kept.length
     doctor.composition.standalone = kept.filter((id) => !inSuite.has(id)).length
-    await writeFile(doctorFile, JSON.stringify(doctor))
+    // The page is public: repo paths go relative and home paths go to ~, so no
+    // machine-specific absolute path ships in the artifact.
+    const published = JSON.stringify(doctor).split(`${ROOT}/`).join('').split(homedir()).join('~')
+    await writeFile(doctorFile, published)
     console.log(`aligned ${doctorFile}: ${kept.length} displayed of ${probed.length} probed`)
   }
   const real = fixtures.filter((f) => f.catalog === 'real').length
