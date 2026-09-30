@@ -41,7 +41,11 @@ export const SESSIONS: LabeledSession[] = [
       projectRules: 'Prefer rollback over hotfix during an active incident.'
     },
     // NOT rollback-migration (wrong verb) and NOT rollback-release-maps (wrong service).
-    expected: ['rollback-release-payments', 'create-datadog-dashboard-payments']
+    // "Pull up the dashboard" means view an existing one; create-datadog-dashboard
+    // builds one and the catalog has no view skill, so it is a wrong-verb trap, not
+    // truth. Label corrected 2026-09-29, after capture; the recording keeps its
+    // capture-time copy.
+    expected: ['rollback-release-payments']
   },
   {
     id: 'maps-latency',
@@ -83,8 +87,11 @@ export const SESSIONS: LabeledSession[] = [
         'and once we mitigate write the blameless postmortem',
       transcript: 'User: wallet fully down, customers cannot pay.'
     },
-    // Org-wide process skills, not a per-service capability.
-    expected: ['open-incident', 'write-postmortem']
+    // Org-wide process skills, not a per-service capability. The incident is live, and
+    // write-postmortem's own description sends live incidents to open-incident, so the
+    // postmortem is a later-phase trap, not truth this turn. Label corrected 2026-09-29,
+    // after capture; the recording keeps its capture-time copy.
+    expected: ['open-incident']
   },
 
   // ---- Real-catalog fixtures: queries with highly targeted matches among the

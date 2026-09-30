@@ -8,6 +8,7 @@ import { route, applyPolicy, createRecordedJudge, runFromEvalRecording } from '.
 import { loadSkills } from '../lib/skills/loadSkills.js'
 import { synthesizeCatalog } from '../lib/skills/synthesize.js'
 import type { Skill, SkillScore, SessionState } from '../lib/skills/types.js'
+import { SESSIONS } from '../fixtures/sessions.js'
 
 // Builds the recorded demo's static data: every captured real-Jev run replayed through
 // the REAL pipeline, written once to web/data/replays.json. The browser only renders.
@@ -117,6 +118,19 @@ function scoredFromRun(run: CapturedRun, skills: Map<string, Skill>): SkillScore
  * (never inferred).
  */
 const MAX_DECOYS = 4
+
+// Curated decoys the sibling rule can't find: look-alikes that fail on verb or phase,
+// named per synthetic fixture from the query and the skill's own description, never
+// from the run. payments-rollback asks to pull up (view) a dashboard, while
+// create-datadog-dashboard builds one and the catalog has no view skill.
+// wallet-incident's incident is live, and write-postmortem's description sends live
+// incidents to open-incident. A curated decoy the judge did not reject is not marked:
+// the ‡ label claims a correct rejection.
+const CURATED_DECOYS: Record<string, string[]> = {
+  'payments-rollback': ['create-datadog-dashboard-payments'],
+  'wallet-incident': ['write-postmortem']
+}
+
 function computeDecoys(rec: Recording): string[] {
   if (rec.catalog !== 'synthetic' || !rec.run) return []
   const probs = rec.run.probabilities
@@ -132,10 +146,16 @@ function computeDecoys(rec: Recording): string[] {
     if (p === undefined || p >= POLICY.suggestFloor) continue
     if (rec.groundTruth.some((truth) => isSibling(truth, id))) decoys.push([id, p])
   }
-  return decoys
+  // Curated decoys count toward the cap: red never floods.
+  const curated = (CURATED_DECOYS[rec.fixtureId] ?? []).filter(
+    (id) => probs[id] !== undefined && probs[id]! < POLICY.suggestFloor
+  )
+  const siblings = decoys
+    .filter(([id]) => !curated.includes(id))
     .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_DECOYS)
+    .slice(0, Math.max(0, MAX_DECOYS - curated.length))
     .map(([id]) => id)
+  return [...curated, ...siblings]
 }
 
 /** Capture date = the recording's git commit date (honest provenance, not mtime). */
@@ -160,6 +180,9 @@ async function main(): Promise<void> {
   const fixtures = []
   for (const file of files.sort()) {
     const rec: Recording = JSON.parse(await readFile(join(RECORDINGS_DIR, file), 'utf8'))
+    // Labels come from fixtures/sessions.ts, their single source. A recording's
+    // groundTruth is the capture-time copy and can predate a label correction.
+    rec.groundTruth = SESSIONS.find((s) => s.id === rec.fixtureId)?.expected ?? rec.groundTruth
     if (rec.catalog === 'real' && rec.run) {
       const removed = Object.keys(rec.run.probabilities).filter((id) => DISPLAY_EXCLUDE.has(id))
       for (const id of removed) delete rec.run.probabilities[id]

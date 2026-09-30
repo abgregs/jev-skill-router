@@ -136,8 +136,9 @@ alone — every one carries a text label (INVOKE / SUGGEST / — / MISSED / REJE
 
 Red-mark curation rule: red may only mark a row the eval *deliberately tested* — decoys
 come from named data (synthetic: the highest-scoring same-family sibling variants of
-the truth — look-alikes that actually competed — capped at the few highest; real: a
-curated per-fixture decoy list, empty until authored), and
+the truth — look-alikes that actually competed — capped at the few highest, plus
+look-alikes curated per fixture where the verb or phase is wrong, marked only when the
+judge rejected them; real: a curated per-fixture decoy list, empty until authored), and
 missed-truth marks come from the ground-truth set. Red never marks an inference, and
 never floods: a mark that appears ninety times a figure grades nothing.
 

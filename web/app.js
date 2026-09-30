@@ -606,7 +606,7 @@ function renderLegend(el, f, run) {
   const lines = []
   const present = truthInCatalog(f, run)
   if ((f.decoys ?? []).length > 0) {
-    lines.push(`‡ marks a curated decoy, a same-family look-alike the judge correctly rejected`)
+    lines.push(`‡ marks a curated decoy, a look-alike the judge correctly rejected`)
   }
   if (present.some((id) => bandOf(id, run) !== 'invoke')) {
     lines.push(`red marks where the eval bites`)
