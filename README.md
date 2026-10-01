@@ -11,12 +11,21 @@ ambiguous — exactly the "programmable common sense" Jev is for.
 
 ## Install
 
+Needs a TypeSafe API key. The router asks Jev about every routed skill on every prompt:
+one Noul per skill per turn, so a 51-skill catalog spends 51 Nouls a prompt. Skills you
+`exclude` are never judged and cost nothing.
+
 In Claude Code, two commands (the repo is its own plugin marketplace):
 
 ```
 /plugin marketplace add abgregs/jev-skill-router
 /plugin install jev-skill-router@jev
 ```
+
+Claude Code asks for the key when it enables the plugin and keeps it in your system's
+credential store, not in `settings.json`; `/plugin configure jev-skill-router@jev` sets or
+changes it later. An exported `TYPESAFE_API_KEY` also works and takes precedence. Without
+a key, routing and the gate both stay off, and the router says so once per session.
 
 That registers two hooks. Every prompt is routed against your installed skills *before*
 the model sees the turn, and the verdict is injected into context ("Invoke: … / Also
@@ -29,13 +38,12 @@ through: the router adds it to the verdict and the gate lets it pass. Asking in 
 raise the skill's score, but the skill runs only if the verdict carries it or it's in
 your `alwaysAllow` list; otherwise the gate turns the model's attempt away.
 
-By default routing runs on the free, deterministic **mock judge**: no API key, no spend,
-and you can watch the whole pipeline work. Put `{"judge": "jev"}` in your project's
-`.skillrouter.json` (key in the environment) to route with real Jev. Details, other
-hosts, and uninstall: see the Claude Code hooks section below.
-
-Not published to npm — install as the plugin above, or from a clone
-(`npm install && npm run build`, then `node dist/cli.mjs install claude`). Node 20+.
+Requires Claude Code, the only supported host, and Node 20.12+ on your `PATH`: the hooks
+run as `node` scripts in both install paths. Not published to npm — install as the
+plugin above, or from a clone (`npm install && npm run build`, then
+`node dist/cli.mjs install claude`). The `config`, `doctor`, and `route` commands need a
+clone; the plugin installs only the hooks. Details and uninstall: see the Claude Code
+hooks section below.
 
 ## Architecture — judge everything, in parallel
 
@@ -82,7 +90,8 @@ web/          the recorded demo — a static page replaying captured real-Jev ru
 
 The **mock judge** is deterministic and free; it validates the pipeline and the fan-out's
 cost accounting, **not** Jev's real routing quality (it scores on keywords; Jev's edge is
-semantic). Swap in `createJevJudge()` (set the key) to measure true quality. The
+semantic). The CLI and hooks run it only when asked for by name (`--judge mock`, or
+`"judge": "mock"` in config); Jev is the default. The
 **recorded judge** replays captured real-Jev results verbatim — it powers the demo and
 fails loud rather than improvise.
 
@@ -94,13 +103,13 @@ npm run inspect   # pure-code smoke test: loader + synthetic catalog + mock pipe
 npm run bench     # scale benchmark: 1064 skills, sharded fan-out, threshold sweep
 npm run typecheck
 
-# route your REAL installed skills (mock judge, free):
+# route your REAL installed skills with Jev (needs a key; --judge mock is a free keyword dry run):
 npm run route -- "add a datadog dashboard for the payments rollback"
-npm run route -- "..." --skills-dir ~/.claude/skills --threshold 0.8 --judge jev
+npm run route -- "..." --skills-dir ~/.claude/skills --threshold 0.8
 
-# catalog health report (static findings free; --judge jev for semantic overlap):
+# catalog health report (static findings free; probes judge with Jev, --dry-run projects the cost):
 npm run doctor -- --no-probe
-npm run doctor -- --judge jev --dry-run
+npm run doctor -- --dry-run
 
 # recorded web demo (static, no key):
 npm run demo:data # regenerate web/data/replays.json from fixtures/recordings/
@@ -138,17 +147,18 @@ config file is `--config <path>`, else `.skillrouter.json` in the cwd, else
 `maxSelected`, `shardSize`, `top`, `exclude` (skill ids removed from routing entirely — the
 config expression of "I picked a favorite"), and the hook gate's `alwaysAllow`.
 
-Edit the two lists with `config` instead of by hand (from a clone: `node dist/cli.mjs
-config …` or `npm run config -- …`). `add` checks each id against the catalog the router
+From a clone, edit the two lists with `config` instead of by hand (`node dist/cli.mjs
+config …` or `npm run config -- …`); plugin-only installs have no CLI, so edit
+`.skillrouter.json` directly. `add` checks each id against the catalog the router
 judges and writes nothing on a miss, so `exclude add docs` answers "did you mean
 anthropic-skills:docs?"; `--project` targets `./.skillrouter.json`; `show` prints the
 file in effect where you run it, flagging entries that name no routed skill.
 
 ```bash
-jev-skill-router config exclude add anthropic-skills:docs
-jev-skill-router config allow add anthropic-skills:pdf --project
-jev-skill-router config exclude remove brief debrief
-jev-skill-router config show
+node dist/cli.mjs config exclude add anthropic-skills:docs
+node dist/cli.mjs config allow add anthropic-skills:pdf --project
+node dist/cli.mjs config exclude remove brief debrief
+node dist/cli.mjs config show
 ```
 
 **`--json`** emits one machine-readable object (`{invoke, suggest, probabilities, ...}`) for
@@ -195,10 +205,10 @@ router already routes correctly (see the finding above) — co-firing inside one
 author's design, not a fault. `alwaysAllow` skills are likewise exempt as intruders: the
 user already decided they ride along.
 
-Probes on the mock judge are free but see only lexical confusion; semantic overlap needs
-`--judge jev`. Each probe judges the whole catalog, so cost is probes × catalog size —
-projected before spending (53 skills → 2,809 Nouls for a full sweep) and refused past
-`--max-nouls` (default 3000). `--no-probe` gives the always-free static report,
+Probes judge with Jev by default, which is what finds semantic overlap; `--judge mock`
+probes are free but see only lexical confusion. Each probe judges the whole catalog, so
+cost is probes × catalog size — projected before spending (53 skills → 2,809 Nouls for a
+full sweep) and refused past `--max-nouls` (default 3000). `--no-probe` gives the always-free static report,
 `--dry-run` prints the projection, `--json` a machine-readable report.
 
 Paid sweeps never evaporate: jev runs auto-record raw probe probabilities (no threshold
@@ -224,8 +234,8 @@ Two hooks make the router authoritative in a Claude Code session:
   The skill decision is made before the agent starts thinking. Any catalog skill the
   user slash-invoked (`/improve-animations …`) is **promoted into the invoke band with
   certainty** — past the judge's score and the cap — so the instruction the model reads
-  matches what the user commanded. Silent on conversational turns and on any error — it
-  never breaks a turn.
+  matches what the user commanded. Silent on conversational turns; on an error it shows
+  you a one-line notice and never breaks the turn.
 - **`hooks/pre-tool-use-gate.ts`** (enforcement) — matched on the `Skill` tool; denies
   invocations of routed skills that are not on the turn's approved list, and of skills
   the config excludes, so the agent's native instinct to pick its own skills has no effect. **Fail-open** (no/stale state →
@@ -255,7 +265,8 @@ pdf skill, the gate denies it. List the skill in `alwaysAllow` and that call pas
 { "alwaysAllow": ["anthropic-skills:pdf", "git-commit"] }
 ```
 
-or `jev-skill-router config allow add anthropic-skills:pdf git-commit` (see Config layering).
+or, from a clone, `node dist/cli.mjs config allow add anthropic-skills:pdf git-commit`
+(see Config layering).
 
 Use the routed id. Synced skills are `anthropic-skills:<name>`, and that entry passes a
 call by either the full name or the short `pdf`; a bare `"pdf"` only matches calls made
@@ -277,7 +288,9 @@ no settings.json editing and no path to go stale:
 /plugin install jev-skill-router@jev
 ```
 
-**Install — the CLI (plain settings.json, or other hosts).** `jev-skill-router install
+`/plugin uninstall jev-skill-router@jev` removes it.
+
+**Install — the CLI (hooks written into settings.json).** `jev-skill-router install
 claude` writes the hook registration into `~/.claude/settings.json` (`--project` for the
 project file) with resolved absolute paths to the bundles. It is idempotent: any existing
 router entries — including stale paths from a previous clone — are replaced, and
@@ -291,9 +304,12 @@ node dist/cli.mjs install claude          # or --dry-run to preview the settings
 For local plugin development, `claude --plugin-dir /path/to/jev-skill-router` loads the
 working tree as the plugin; `/reload-plugins` picks up a rebuild without restarting.
 
-The hooks respect the *project's* `.skillrouter.json` (judge, threshold, `alwaysAllow`, …)
-via the `cwd` Claude Code hands them — so `{"judge": "jev"}` there routes with real Jev
-(key from the environment or the router's `.env.local`), and the mock judge otherwise.
+The hooks read the *project's* `.skillrouter.json` (threshold, `exclude`, `alwaysAllow`,
+…) via the `cwd` Claude Code hands them, else `~/.skillrouter.json`; a project file
+replaces the home file rather than merging with it. The key comes from an exported
+`TYPESAFE_API_KEY`, else the plugin's stored key, else, for a clone install, the clone's
+`.env.local`. With no key the hooks stay off and say so once per session; any other
+routing failure is reported on its turn, and the gate lets that turn through.
 
 ### Finding: hierarchies are read from descriptions — and shared territory co-invokes
 
