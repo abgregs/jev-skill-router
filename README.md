@@ -41,16 +41,26 @@ your `alwaysAllow` list; otherwise the gate turns the model's attempt away.
 **Settings.** Routing works with no config file. To change it — `exclude`,
 `alwaysAllow`, thresholds — write `.skillrouter.json` in the folder you start Claude Code
 from, or `~/.skillrouter.json` for every project. This is the router's own file, not
-Claude Code's `settings.json`; the first one found wins and the two don't merge. From a
-clone, `node dist/cli.mjs config …` edits it; plugin-only users edit it by hand (see
-Config layering).
+Claude Code's `settings.json`; the first one found wins and the two don't merge.
+`jev-skill-router config …` edits it (see the command below); plugin-only users edit it
+by hand (see Config layering).
 
 Requires Claude Code, the only supported host, and Node 20.12+ on your `PATH`: the hooks
-run as `node` scripts in both install paths. Not published to npm — install as the
-plugin above, or from a clone (`npm install && npm run build`, then
-`node dist/cli.mjs install claude`). The `config`, `doctor`, and `route` commands need a
-clone; the plugin installs only the hooks. Details and uninstall: see the Claude Code
+run as `node` scripts in both install paths. Details and uninstall: see the Claude Code
 hooks section below.
+
+**The `jev-skill-router` command.** The plugin installs only the hooks. The command —
+`config`, `doctor`, `route`, and `install claude` for a setup without the plugin — comes
+from a clone; it isn't published to npm:
+
+```bash
+git clone https://github.com/abgregs/jev-skill-router
+cd jev-skill-router
+npm install && npm link    # puts jev-skill-router on your PATH
+```
+
+`npm link` installs the command for the active Node version; with nvm, switching versions
+hides it until you run `npm link` again. `npm rm -g jev-skill-router` removes it.
 
 ## Architecture — judge everything, in parallel
 
@@ -127,7 +137,7 @@ TYPESAFE_API_KEY=sk-... npm run route:live            # one fixture over the rea
 TYPESAFE_API_KEY=sk-... npm run eval:capture          # real-Jev evals, writes recordings
 ```
 
-### CLI — route real skills (`npm run route`)
+### CLI — route real skills (`jev-skill-router route`)
 
 Provider-agnostic: reads `<slug>/SKILL.md` skills from a directory and prints which the router
 would invoke. Skills follow the standard `npx skills` layout, so the default catalog is the
@@ -154,24 +164,23 @@ config file is `--config <path>`, else `.skillrouter.json` in the cwd, else
 `maxSelected`, `shardSize`, `top`, `exclude` (skill ids removed from routing entirely — the
 config expression of "I picked a favorite"), and the hook gate's `alwaysAllow`.
 
-From a clone, edit the two lists with `config` instead of by hand (`node dist/cli.mjs
-config …` or `npm run config -- …`); plugin-only installs have no CLI, so edit
-`.skillrouter.json` directly. `add` checks each id against the catalog the router
+Edit the two lists with `jev-skill-router config` instead of by hand; plugin-only
+installs have no command, so edit `.skillrouter.json` directly. `add` checks each id against the catalog the router
 judges and writes nothing on a miss, so `exclude add docs` answers "did you mean
 anthropic-skills:docs?"; `--project` targets `./.skillrouter.json`; `show` prints the
 file in effect where you run it, flagging entries that name no routed skill.
 
 ```bash
-node dist/cli.mjs config exclude add anthropic-skills:docs
-node dist/cli.mjs config allow add anthropic-skills:pdf --project
-node dist/cli.mjs config exclude remove brief debrief
-node dist/cli.mjs config show
+jev-skill-router config exclude add anthropic-skills:docs
+jev-skill-router config allow add anthropic-skills:pdf --project
+jev-skill-router config exclude remove brief debrief
+jev-skill-router config show
 ```
 
 **`--json`** emits one machine-readable object (`{invoke, suggest, probabilities, ...}`) for
 host adapters — e.g. a Claude Code `UserPromptSubmit` hook that injects the verdict each turn.
 
-### Catalog doctor (`npm run doctor`)
+### Catalog doctor (`jev-skill-router doctor`)
 
 Is the catalog healthy *as a routing surface*? Everything the doctor grades is the surface
 the router runs on — SKILL.md frontmatter `name` + `description`, the fields the Agent
@@ -274,8 +283,8 @@ pdf skill, the gate denies it. List the skill in `alwaysAllow` and that call pas
 { "alwaysAllow": ["anthropic-skills:pdf", "git-commit"] }
 ```
 
-or, from a clone, `node dist/cli.mjs config allow add anthropic-skills:pdf git-commit`
-(see Config layering).
+or `jev-skill-router config allow add anthropic-skills:pdf git-commit` (see Config
+layering).
 
 Use the routed id. Synced skills are `anthropic-skills:<name>`, and that entry passes a
 call by either the full name or the short `pdf`; a bare `"pdf"` only matches calls made
@@ -299,15 +308,14 @@ no settings.json editing and no path to go stale:
 
 `/plugin uninstall jev-skill-router@jev` removes it.
 
-**Install — the CLI (hooks written into settings.json).** `jev-skill-router install
-claude` writes the hook registration into `~/.claude/settings.json` (`--project` for the
+**Install — the CLI (hooks written into settings.json).** With the command linked (see
+Install), `jev-skill-router install claude` writes the hook registration into `~/.claude/settings.json` (`--project` for the
 project file) with resolved absolute paths to the bundles. It is idempotent: any existing
 router entries — including stale paths from a previous clone — are replaced, and
-`--uninstall` removes them cleanly. From a clone:
+`--uninstall` removes them cleanly. The hooks run from the clone, so keep it in place:
 
 ```bash
-npm install && npm run build
-node dist/cli.mjs install claude          # or --dry-run to preview the settings diff
+jev-skill-router install claude          # or --dry-run to preview the settings diff
 ```
 
 For local plugin development, `claude --plugin-dir /path/to/jev-skill-router` loads the
