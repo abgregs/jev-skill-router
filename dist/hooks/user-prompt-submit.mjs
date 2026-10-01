@@ -4206,7 +4206,7 @@ var init_jevJudge = __esm({
 });
 
 // hooks/user-prompt-submit.ts
-import { existsSync as existsSync4, mkdirSync, readFileSync as readFileSync3, writeFileSync } from "node:fs";
+import { existsSync as existsSync4, mkdirSync, readFileSync as readFileSync3, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join3 } from "node:path";
 
@@ -4592,6 +4592,8 @@ try {
   const prompt = (input.prompt ?? "").trim();
   const sessionId = input.session_id ?? "unknown";
   const projectCwd = input.cwd ?? process.cwd();
+  const statePath = join3(STATE_DIR, `turn-${sessionId}.json`);
+  rmSync(statePath, { force: true });
   if (!prompt) process.exit(0);
   const projectConfig = join3(projectCwd, ".skillrouter.json");
   const routeStart = Date.now();
@@ -4619,7 +4621,7 @@ try {
   mkdirSync(STATE_DIR, { recursive: true });
   const hookWallMs = Date.now() - processStartMs;
   writeFileSync(
-    join3(STATE_DIR, `turn-${sessionId}.json`),
+    statePath,
     JSON.stringify({
       invoke: verdict.invoke,
       suggest: verdict.suggest,

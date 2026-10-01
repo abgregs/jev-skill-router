@@ -8,12 +8,13 @@
 // question to compete on.
 //
 // Failure policy: this hook must never break a turn. Any error → exit 0, no output.
-// There is no internal routing timeout; Claude Code's own hook timeout is the bound,
-// and a killed hook writes no verdict → the gate fails open.
+// The last turn's verdict is deleted before routing, so a failed run leaves the gate
+// nothing to enforce. There is no internal routing timeout; Claude Code's own hook
+// timeout is the bound, and a killed hook writes no verdict → the gate fails open.
 //
 // Wiring: `jev-skill-router install claude`, or the plugin's hooks/hooks.json —
 // both point at the bundled dist/hooks/user-prompt-submit.mjs.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runRoute } from '../lib/router/runRoute.js'
@@ -58,6 +59,10 @@ try {
   const prompt: string = (input.prompt ?? '').trim()
   const sessionId: string = input.session_id ?? 'unknown'
   const projectCwd: string = input.cwd ?? process.cwd()
+  // Delete the last turn's verdict first. If this run fails or is killed, the gate then
+  // finds no verdict and fails open, rather than enforcing one made for another prompt.
+  const statePath = join(STATE_DIR, `turn-${sessionId}.json`)
+  rmSync(statePath, { force: true })
   if (!prompt) process.exit(0)
 
   // Respect the project's own .skillrouter.json (the hook's cwd is not guaranteed).
@@ -97,7 +102,7 @@ try {
   mkdirSync(STATE_DIR, { recursive: true })
   const hookWallMs = Date.now() - processStartMs
   writeFileSync(
-    join(STATE_DIR, `turn-${sessionId}.json`),
+    statePath,
     JSON.stringify({
       invoke: verdict.invoke,
       suggest: verdict.suggest,
