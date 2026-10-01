@@ -5,7 +5,7 @@
   "description": "A Jev-powered router that scores which agent skills to invoke for the current coding session.",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=20.12" },
   "bin": { "jev-skill-router": "dist/cli.mjs" },
   "files": ["dist"],
   "scripts": {
