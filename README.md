@@ -38,6 +38,13 @@ through: the router adds it to the verdict and the gate lets it pass. Asking in 
 raise the skill's score, but the skill runs only if the verdict carries it or it's in
 your `alwaysAllow` list; otherwise the gate turns the model's attempt away.
 
+**Settings.** Routing works with no config file. To change it — `exclude`,
+`alwaysAllow`, thresholds — write `.skillrouter.json` in the folder you start Claude Code
+from, or `~/.skillrouter.json` for every project. This is the router's own file, not
+Claude Code's `settings.json`; the first one found wins and the two don't merge. From a
+clone, `node dist/cli.mjs config …` edits it; plugin-only users edit it by hand (see
+Config layering).
+
 Requires Claude Code, the only supported host, and Node 20.12+ on your `PATH`: the hooks
 run as `node` scripts in both install paths. Not published to npm — install as the
 plugin above, or from a clone (`npm install && npm run build`, then
@@ -307,10 +314,10 @@ For local plugin development, `claude --plugin-dir /path/to/jev-skill-router` lo
 working tree as the plugin; `/reload-plugins` picks up a rebuild without restarting.
 
 The hooks read the *project's* `.skillrouter.json` (threshold, `exclude`, `alwaysAllow`,
-…) via the `cwd` Claude Code hands them, else `~/.skillrouter.json`; a project file
-replaces the home file rather than merging with it. The key comes from an exported
-`TYPESAFE_API_KEY`, else the plugin's stored key, else, for a clone install, the clone's
-`.env.local`. With no key the hooks stay off and say so once per session; any other
+…) in the folder Claude Code was started from (parent folders aren't searched), else
+`~/.skillrouter.json`; a project file replaces the home file rather than merging with
+it. The key comes from an exported `TYPESAFE_API_KEY`, else the plugin's stored key,
+else, for a clone install, the clone's `.env.local`. With no key the hooks stay off and say so once per session; any other
 routing failure is reported on its turn, and the gate lets that turn through.
 
 ### Finding: hierarchies are read from descriptions — and shared territory co-invokes
