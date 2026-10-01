@@ -62,6 +62,37 @@ npm install && npm link    # puts jev-skill-router on your PATH
 `npm link` installs the command for the active Node version; with nvm, switching versions
 hides it until you run `npm link` again. `npm rm -g jev-skill-router` removes it.
 
+## Results — the released router, recorded runs only
+
+These are the only numbers this repo claims for routing quality: the 22 real-Jev runs in
+`fixtures/recordings/` (real catalog captured 2026-09-28, synthetic 2026-09-22), replayed
+through the shipped policy (threshold 0.85, suggest floor 0.80, cap 6). The judge prompt and
+policy code are unchanged since both captures; `npm run demo:data` reproduces every row.
+
+| Real catalog (51 skills), 17 fixtures | Result |
+|---|---|
+| Task fixtures (11): needed skills invoked | **13 / 13** |
+| User-only skill (`disable-model-invocation`), 1 fixture: left to the user | **1 / 1** — nothing invoked |
+| Negative controls (5): asks for skills the catalog doesn't have | **5 / 5** — no stand-in invoked; 4 invoked nothing, `maps-latency` only its one needed in-catalog skill (`diagnosing-bugs`) |
+
+| Synthetic catalog (1,064 skills), 5 fixtures | Result |
+|---|---|
+| Needed skills invoked | **8 / 8** |
+| Curated look-alike decoys invoked | **0 / 17** |
+
+- **Ground truth is ours.** One needed skill per part of the ask, labeled from the query
+  and skill descriptions, never from a run's output. Related skills that also clear the bar
+  are welcome and ungraded: the 11 task fixtures invoked 26 skills for 13 needed ones, and
+  two uncurated synthetic near-siblings co-invoked (`rollback-release-checkout`,
+  `trace-latency-regression-tracing`).
+- **Small and single-turn.** One capture per fixture. Read it as evidence, not a benchmark.
+- **These grade the verdict, not the session.** Whether the model then loads and uses the
+  skills was studied only in live sessions during development.
+
+Everything in `bench/results/` and the findings marked *development finding* below came
+from pre-release builds while the router was being built. They explain design decisions;
+they are not results for the released router.
+
 ## Architecture — judge everything, in parallel
 
 ```
@@ -363,6 +394,8 @@ clauses gives the judge nothing to read.
 
 ### Finding: co-invoking overlapping skills improved output — and the bands make it a dial
 
+*Development finding: live sessions on pre-release builds, not part of the [Results](#results--the-released-router-recorded-runs-only).*
+
 When several same-domain skills clear the invoke threshold together, the observed effect
 on real artifacts was **better work, not noise**. In live A/B sessions, the arm that
 loaded four "extra" design skills alongside `animate` shipped a toast with textbook motion
@@ -384,6 +417,8 @@ verdict breadth is a real dial, not a suggestion, on frontier models.
 
 ### Finding: invoke is a command, suggest is a menu — and models treat them that way
 
+*Development finding: live sessions on pre-release builds, not part of the [Results](#results--the-released-router-recorded-runs-only).*
+
 The two bands turn out to carry two different speech acts, verified live (with a
 frontier session model). The **invoke band is obeyed wholesale**: a compliant model
 loads every commanded skill. The **suggest band is consulted, not obeyed**: forced
@@ -403,6 +438,8 @@ tune what gets selected — they tune **how imperatively the model is addressed*
 each skill, which is a control surface stock skill selection doesn't have at all.
 
 ### Finding: verdicts must weight the current request over the transcript
+
+*Development finding: live sessions and bench runs on pre-release builds, not part of the [Results](#results--the-released-router-recorded-runs-only).*
 
 Single-turn evals structurally cannot catch this class of failure. The same two prompts
 that routed perfectly in every single-turn bench rep (3/3 each) returned **empty or

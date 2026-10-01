@@ -3,6 +3,11 @@
 Curated snapshots of `npm run bench:session` output, promoted from the gitignored
 `bench/session-results/` scratch dir so the evidence travels with the repo.
 
+**Development runs.** Everything on this page, the manual smoke tests and probes included,
+was recorded on pre-release router builds while the router was being built. These runs
+explain design decisions; they are not results for the released router. The only claimed
+results are the recorded runs in the root README's Results section.
+
 - `bench-2026-09-21T22-25-14.json` — 6 fixtures × 3 reps × 2 arms, sonnet.
   Run against the pre-rewrite router (prefilter shortlist still in place); the
   no-router arm is unaffected by that, router-arm latency/verdicts may differ
@@ -26,7 +31,7 @@ Curated snapshots of `npm run bench:session` output, promoted from the gitignore
   hook timing, provenance meta). 63 routable skills, real Jev, defaults
   (threshold 0.85, suggestFloor 0.8, maxSelected 6, shardSize 250).
 
-  **Supported claims** (hit rate + time-to-event only — see validity note):
+  **Supported claims for this development build** (hit rate + time-to-event only — see validity note):
   router hit 11/18 expected-skill slots (61%) vs stock 6/18 (33%); router
   reached the right skill in 3–5s vs 11–50s-or-never for stock; negative
   control clean 3/3 in both arms; paired hook overhead (spawn→init delta)
