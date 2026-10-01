@@ -10,8 +10,9 @@
 // `npx skills` store (~/.agents/skills), the provider-neutral source of truth; override with
 // --skills-dir or SKILLS_DIR to point at ~/.claude/skills or a project catalog.
 //
-// --judge jev needs TYPESAFE_API_KEY (from the environment, or a local .env.local next to
-// package.json). The default judge is the free, deterministic keyword mock.
+// The default judge is Jev, which needs TYPESAFE_API_KEY (from the environment, or a
+// local .env.local next to package.json). --judge mock is a free keyword-only dry run
+// for testing the plumbing.
 //
 // Options resolve as: CLI flag > environment > config file > built-in default. The config
 // file is --config <path>, else .skillrouter.json in the cwd, else ~/.skillrouter.json —

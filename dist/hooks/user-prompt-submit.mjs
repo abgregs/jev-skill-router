@@ -4478,8 +4478,20 @@ function createMockJudge(config = {}) {
 }
 
 // lib/router/runRoute.ts
+var RouterSetupError = class extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+  code;
+};
 function loadJevKey() {
   if (process.env.TYPESAFE_API_KEY) return;
+  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
+  if (pluginKey) {
+    process.env.TYPESAFE_API_KEY = pluginKey;
+    return;
+  }
   const moduleDir = dirname2(fileURLToPath(import.meta.url));
   const candidates = [
     resolve3(".env.local"),
@@ -4496,7 +4508,10 @@ async function createJudgeByName(name) {
   if (name === "jev") {
     loadJevKey();
     if (!process.env.TYPESAFE_API_KEY) {
-      throw new Error("--judge jev needs TYPESAFE_API_KEY (export it, or put it in jev-skill-router/.env.local).");
+      throw new RouterSetupError(
+        "no-key",
+        "The Jev judge needs TYPESAFE_API_KEY: export it, or put it in .env.local next to the router's package.json. For a free keyword-only dry run, pass --judge mock."
+      );
     }
     const { createJevJudge: createJevJudge2 } = await Promise.resolve().then(() => (init_jevJudge(), jevJudge_exports));
     return createJevJudge2();
@@ -4520,7 +4535,10 @@ async function runRoute(input) {
   const installed = loadSkills(roots);
   const skills = installed.filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
-    throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
+    throw new RouterSetupError(
+      "no-skills",
+      `No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`
+    );
   }
   const session = {
     latestQuery: input.query,
@@ -4528,7 +4546,7 @@ async function runRoute(input) {
     openFiles: input.openFiles,
     projectRules: input.projectRules
   };
-  const judgeName = input.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "mock");
+  const judgeName = input.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "jev");
   const judge = await createJudgeByName(judgeName);
   const result = await route(session, skills, judge, {
     threshold: input.threshold ?? cfgNum("threshold"),
@@ -4586,6 +4604,24 @@ function recentTranscript(transcriptPath, maxChars = 2e3) {
     return "";
   }
 }
+function notice(message) {
+  console.log(JSON.stringify({ systemMessage: message }));
+}
+function reportFailure(err, sessionId) {
+  if (err instanceof RouterSetupError && err.code === "no-skills") return;
+  if (err instanceof RouterSetupError && err.code === "no-key") {
+    const marker = join3(STATE_DIR, `off-${sessionId}`);
+    if (existsSync4(marker)) return;
+    mkdirSync(STATE_DIR, { recursive: true });
+    writeFileSync(marker, "");
+    notice(
+      "jev-skill-router is off: no TypeSafe API key. Set one with /plugin configure jev-skill-router@jev, or export TYPESAFE_API_KEY before starting Claude Code."
+    );
+    return;
+  }
+  const reason = (err instanceof Error ? err.message : String(err)).split("\n")[0]?.slice(0, 160);
+  notice(`jev-skill-router \xB7 routing skipped this turn: ${reason}`);
+}
 var processStartMs = Date.now() - process.uptime() * 1e3;
 try {
   const input = JSON.parse(readFileSync3(0, "utf8"));
@@ -4597,17 +4633,23 @@ try {
   if (!prompt) process.exit(0);
   const projectConfig = join3(projectCwd, ".skillrouter.json");
   const routeStart = Date.now();
-  const verdict = await runRoute({
-    query: prompt,
-    // This adapter's host is Claude Code, so route on the catalog Claude Code actually
-    // loads — personal ~/.claude/skills, the project's .claude/skills up to the repo
-    // root, and skills synced from claude.ai — NOT runRoute's provider-neutral
-    // ~/.agents/skills default. A verdict drawn from the wrong store can never name
-    // skills the host really has.
-    skillRoots: defaultSkillRoots(projectCwd),
-    transcript: recentTranscript(input.transcript_path) || void 0,
-    configPath: existsSync4(projectConfig) ? projectConfig : void 0
-  });
+  let verdict;
+  try {
+    verdict = await runRoute({
+      query: prompt,
+      // This adapter's host is Claude Code, so route on the catalog Claude Code actually
+      // loads — personal ~/.claude/skills, the project's .claude/skills up to the repo
+      // root, and skills synced from claude.ai — NOT runRoute's provider-neutral
+      // ~/.agents/skills default. A verdict drawn from the wrong store can never name
+      // skills the host really has.
+      skillRoots: defaultSkillRoots(projectCwd),
+      transcript: recentTranscript(input.transcript_path) || void 0,
+      configPath: existsSync4(projectConfig) ? projectConfig : void 0
+    });
+  } catch (err) {
+    reportFailure(err, sessionId);
+    process.exit(0);
+  }
   const routerCliMs = Date.now() - routeStart;
   const catalog = Object.keys(verdict.probabilities);
   const slashNamed = catalog.filter((id) => {

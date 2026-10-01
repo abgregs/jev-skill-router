@@ -44,14 +44,34 @@ export interface RunRouteOutput {
 }
 
 /**
- * Find TYPESAFE_API_KEY in a .env.local when the environment lacks it. Candidates
- * cover every place this module runs from: the caller's cwd (a project's own
- * .env.local), and the package root relative to this file — which is two levels up
- * in the source tree (lib/router/) and for the bundled artifacts one or two levels
- * up from dist/ and dist/hooks/.
+ * A run that cannot start because of setup, not a transient failure: the hook reports
+ * these once per session rather than every turn.
+ */
+export class RouterSetupError extends Error {
+  constructor(
+    readonly code: 'no-key' | 'no-skills',
+    message: string
+  ) {
+    super(message)
+  }
+}
+
+/**
+ * Find TYPESAFE_API_KEY when the environment lacks it. First the plugin's
+ * `typesafe_api_key` option, which Claude Code keeps in the OS credential store and
+ * exports to the plugin's hooks as CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY. Then a
+ * .env.local; candidates cover every place this module runs from: the caller's cwd (a
+ * project's own .env.local), and the package root relative to this file — which is two
+ * levels up in the source tree (lib/router/) and for the bundled artifacts one or two
+ * levels up from dist/ and dist/hooks/.
  */
 function loadJevKey(): void {
   if (process.env.TYPESAFE_API_KEY) return
+  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY
+  if (pluginKey) {
+    process.env.TYPESAFE_API_KEY = pluginKey
+    return
+  }
   const moduleDir = dirname(fileURLToPath(import.meta.url))
   const candidates = [
     resolve('.env.local'),
@@ -70,7 +90,11 @@ export async function createJudgeByName(name: string): Promise<JevJudge> {
   if (name === 'jev') {
     loadJevKey()
     if (!process.env.TYPESAFE_API_KEY) {
-      throw new Error('--judge jev needs TYPESAFE_API_KEY (export it, or put it in jev-skill-router/.env.local).')
+      throw new RouterSetupError(
+        'no-key',
+        'The Jev judge needs TYPESAFE_API_KEY: export it, or put it in .env.local next to ' +
+          "the router's package.json. For a free keyword-only dry run, pass --judge mock."
+      )
     }
     // Lazy import keeps '@typesafe-ai/sdk' out of the mock pipeline's import graph.
     const { createJevJudge } = await import('./jevJudge.js')
@@ -101,7 +125,10 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
   const installed = loadSkills(roots)
   const skills = installed.filter((s) => !exclude.has(s.id))
   if (skills.length === 0) {
-    throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`)
+    throw new RouterSetupError(
+      'no-skills',
+      `No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`
+    )
   }
 
   const session: SessionState = {
@@ -111,7 +138,9 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
     projectRules: input.projectRules
   }
 
-  const judgeName = input.judge ?? (cfg.judge === 'jev' || cfg.judge === 'mock' ? cfg.judge : 'mock')
+  // Jev by default: the mock is keyword overlap, fit only for testing the plumbing, so
+  // it runs only when asked for by name.
+  const judgeName = input.judge ?? (cfg.judge === 'jev' || cfg.judge === 'mock' ? cfg.judge : 'jev')
   const judge = await createJudgeByName(judgeName)
 
   const result = await route(session, skills, judge, {

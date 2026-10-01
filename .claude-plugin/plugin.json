@@ -5,5 +5,13 @@
   "author": { "name": "Austin", "email": "18180452+abgregs@users.noreply.github.com" },
   "repository": "https://github.com/abgregs/jev-skill-router",
   "license": "MIT",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "typesafe_api_key": {
+      "type": "string",
+      "title": "TypeSafe API key",
+      "description": "Jev judges each prompt with this key. Stored in your system credential store, not in settings.json.",
+      "sensitive": true
+    }
+  }
 }

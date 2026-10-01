@@ -7,17 +7,18 @@
 // BEFORE the agent starts thinking, so it never faces an open "which skills?"
 // question to compete on.
 //
-// Failure policy: this hook must never break a turn. Any error → exit 0, no output.
-// The last turn's verdict is deleted before routing, so a failed run leaves the gate
-// nothing to enforce. There is no internal routing timeout; Claude Code's own hook
-// timeout is the bound, and a killed hook writes no verdict → the gate fails open.
+// Failure policy: this hook must never break a turn. Any error → exit 0, with at most
+// a one-line notice to the user (never context for the model). The last turn's verdict
+// is deleted before routing, so a failed run leaves the gate nothing to enforce. There
+// is no internal routing timeout; Claude Code's own hook timeout is the bound, and a
+// killed hook writes no verdict → the gate fails open.
 //
 // Wiring: `jev-skill-router install claude`, or the plugin's hooks/hooks.json —
 // both point at the bundled dist/hooks/user-prompt-submit.mjs.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { runRoute } from '../lib/router/runRoute.js'
+import { RouterSetupError, runRoute } from '../lib/router/runRoute.js'
 import { defaultSkillRoots, SYNCED_NAMESPACE } from '../lib/skills/loadSkills.js'
 import { typedSlash } from '../lib/slash.js'
 
@@ -51,6 +52,33 @@ function recentTranscript(transcriptPath: string | undefined, maxChars = 2000): 
   }
 }
 
+/** A line for the user, not the model: Claude Code shows systemMessage in the terminal. */
+function notice(message: string): void {
+  console.log(JSON.stringify({ systemMessage: message }))
+}
+
+/**
+ * Say why this turn went unrouted. A missing key is reported once per session; an
+ * empty catalog leaves nothing to route, so it stays silent; any other failure is
+ * reported on the turn it happens.
+ */
+function reportFailure(err: unknown, sessionId: string): void {
+  if (err instanceof RouterSetupError && err.code === 'no-skills') return
+  if (err instanceof RouterSetupError && err.code === 'no-key') {
+    const marker = join(STATE_DIR, `off-${sessionId}`)
+    if (existsSync(marker)) return
+    mkdirSync(STATE_DIR, { recursive: true })
+    writeFileSync(marker, '')
+    notice(
+      'jev-skill-router is off: no TypeSafe API key. Set one with /plugin configure ' +
+        'jev-skill-router@jev, or export TYPESAFE_API_KEY before starting Claude Code.'
+    )
+    return
+  }
+  const reason = (err instanceof Error ? err.message : String(err)).split('\n')[0]?.slice(0, 160)
+  notice(`jev-skill-router · routing skipped this turn: ${reason}`)
+}
+
 // Estimate process start time from Node's uptime (wall-clock at module load, before any I/O).
 const processStartMs = Date.now() - process.uptime() * 1000
 
@@ -69,17 +97,23 @@ try {
   const projectConfig = join(projectCwd, '.skillrouter.json')
 
   const routeStart = Date.now()
-  const verdict = await runRoute({
-    query: prompt,
-    // This adapter's host is Claude Code, so route on the catalog Claude Code actually
-    // loads — personal ~/.claude/skills, the project's .claude/skills up to the repo
-    // root, and skills synced from claude.ai — NOT runRoute's provider-neutral
-    // ~/.agents/skills default. A verdict drawn from the wrong store can never name
-    // skills the host really has.
-    skillRoots: defaultSkillRoots(projectCwd),
-    transcript: recentTranscript(input.transcript_path) || undefined,
-    configPath: existsSync(projectConfig) ? projectConfig : undefined
-  })
+  let verdict: Awaited<ReturnType<typeof runRoute>>
+  try {
+    verdict = await runRoute({
+      query: prompt,
+      // This adapter's host is Claude Code, so route on the catalog Claude Code actually
+      // loads — personal ~/.claude/skills, the project's .claude/skills up to the repo
+      // root, and skills synced from claude.ai — NOT runRoute's provider-neutral
+      // ~/.agents/skills default. A verdict drawn from the wrong store can never name
+      // skills the host really has.
+      skillRoots: defaultSkillRoots(projectCwd),
+      transcript: recentTranscript(input.transcript_path) || undefined,
+      configPath: existsSync(projectConfig) ? projectConfig : undefined
+    })
+  } catch (err) {
+    reportFailure(err, sessionId)
+    process.exit(0)
+  }
   // Field name kept from the subprocess era — session-bench reads it as "router run cost".
   const routerCliMs = Date.now() - routeStart
 
@@ -143,6 +177,6 @@ try {
     )
   }
 } catch {
-  // Router unavailable or errored — stay silent, never break the user's turn.
+  // Unreadable hook input or an unwritable state dir — stay silent, never break the turn.
 }
 process.exit(0)

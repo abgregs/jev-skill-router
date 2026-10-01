@@ -2,8 +2,8 @@
 // finding names its evidence and exactly one action ("uninstall X", "add a 'not for Y'
 // clause to Z", "add W to exclude") — never a wall of similarity scores.
 //
-//   npm run doctor                      # static findings + probes with the configured judge
-//   npm run doctor -- --judge jev       # semantic probes (projects Noul cost first)
+//   npm run doctor                      # static findings + Jev probes (projects Noul cost first)
+//   npm run doctor -- --judge mock      # free probes that see only lexical confusion
 //   npm run doctor -- --no-probe        # static only: always free, no judge at all
 //   npm run doctor -- --dry-run         # print the probe cost projection and exit
 //   npm run doctor -- --json            # machine-readable report
@@ -38,7 +38,7 @@ import {
 } from '../lib/doctor.js'
 import type { DoctorConfig, DoctorRecording, Finding, ProbeOutcome } from '../lib/doctor.js'
 import { expandHome, loadConfigFile, stringList } from '../lib/config.js'
-import { createJudgeByName } from '../lib/router/runRoute.js'
+import { createJudgeByName, RouterSetupError } from '../lib/router/runRoute.js'
 import { loadSkills, routableSkillIds, scanUnroutable } from '../lib/skills/loadSkills.js'
 import { DEFAULT_ROUTE_OPTIONS } from '../lib/skills/types.js'
 import type { JevJudge } from '../lib/router/judge.js'
@@ -120,7 +120,7 @@ export async function main(argv: string[]): Promise<void> {
   // ---- Probe layer -----------------------------------------------------------------
   const probing = !bools.has('no-probe')
   const replayPath = opts.replay ? expandHome(opts.replay) : undefined
-  const judgeName = opts.judge ?? (cfg.judge === 'jev' || cfg.judge === 'mock' ? cfg.judge : 'mock')
+  const judgeName = opts.judge ?? (cfg.judge === 'jev' || cfg.judge === 'mock' ? cfg.judge : 'jev')
   const probeSkills = only ? skills.filter((s) => only.includes(s.id)) : skills
   if (only && !replayPath && probeSkills.length !== only.length) {
     const missing = only.filter((id) => !probeSkills.some((s) => s.id === id))
@@ -220,6 +220,7 @@ export async function main(argv: string[]): Promise<void> {
       judge = await createJudgeByName(judgeName)
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err))
+      if (err instanceof RouterSetupError) console.error('Or pass --no-probe for the free static findings only.')
       process.exit(1)
     }
 

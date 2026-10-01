@@ -145,7 +145,7 @@ interface PreflightResult {
   notes: string[]
   /** Human-readable degraded states (non-jev judge, missing skills) to stamp into meta. */
   degraded: string[]
-  /** Judge name from ~/.skillrouter.json (or 'mock' if absent/unconfigured). */
+  /** Judge name from ~/.skillrouter.json (or 'jev' if absent/unconfigured). */
   judgeType: string
   installedSkillCount: number
   routableSkillCount: number
@@ -170,12 +170,12 @@ function preflight(): PreflightResult {
 
   // The hook resolves ~/.skillrouter.json — record which judge the bench actually measures.
   const homeCfg = join(homedir(), '.skillrouter.json')
-  let judgeType = 'mock'
+  let judgeType = 'jev'
   if (existsSync(homeCfg)) {
     try {
       const cfg = JSON.parse(readFileSync(homeCfg, 'utf8'))
       notes.push(`~/.skillrouter.json: ${JSON.stringify(cfg)}`)
-      judgeType = cfg.judge ?? 'mock'
+      judgeType = cfg.judge ?? 'jev'
       if (judgeType !== 'jev') {
         const msg = `~/.skillrouter.json judge=${judgeType} — benchmarking ${judgeType} judge, not Jev`
         console.warn(`WARNING: ${msg}.`)
@@ -186,7 +186,7 @@ function preflight(): PreflightResult {
       console.warn(`WARNING: ${msg}.`)
       degraded.push(msg)
     }
-  } else notes.push('~/.skillrouter.json: absent (router defaults, judge=mock)')
+  } else notes.push('~/.skillrouter.json: absent (router defaults, judge=jev)')
 
   // Expected ids must exist as installed Claude skills or hits are impossible.
   const claudeSkills = new Set(

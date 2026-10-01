@@ -4545,6 +4545,11 @@ import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:pa
 import { fileURLToPath } from "node:url";
 function loadJevKey() {
   if (process.env.TYPESAFE_API_KEY) return;
+  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
+  if (pluginKey) {
+    process.env.TYPESAFE_API_KEY = pluginKey;
+    return;
+  }
   const moduleDir = dirname2(fileURLToPath(import.meta.url));
   const candidates = [
     resolve3(".env.local"),
@@ -4561,7 +4566,10 @@ async function createJudgeByName(name) {
   if (name === "jev") {
     loadJevKey();
     if (!process.env.TYPESAFE_API_KEY) {
-      throw new Error("--judge jev needs TYPESAFE_API_KEY (export it, or put it in jev-skill-router/.env.local).");
+      throw new RouterSetupError(
+        "no-key",
+        "The Jev judge needs TYPESAFE_API_KEY: export it, or put it in .env.local next to the router's package.json. For a free keyword-only dry run, pass --judge mock."
+      );
     }
     const { createJevJudge: createJevJudge2 } = await Promise.resolve().then(() => (init_jevJudge(), jevJudge_exports));
     return createJevJudge2();
@@ -4585,7 +4593,10 @@ async function runRoute(input) {
   const installed = loadSkills(roots);
   const skills = installed.filter((s) => !exclude.has(s.id));
   if (skills.length === 0) {
-    throw new Error(`No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`);
+    throw new RouterSetupError(
+      "no-skills",
+      `No skills found in ${skillsDir}. Point --skills-dir at a folder of <slug>/SKILL.md skills.`
+    );
   }
   const session = {
     latestQuery: input.query,
@@ -4593,7 +4604,7 @@ async function runRoute(input) {
     openFiles: input.openFiles,
     projectRules: input.projectRules
   };
-  const judgeName = input.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "mock");
+  const judgeName = input.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "jev");
   const judge = await createJudgeByName(judgeName);
   const result = await route(session, skills, judge, {
     threshold: input.threshold ?? cfgNum("threshold"),
@@ -4614,6 +4625,7 @@ async function runRoute(input) {
     probabilities
   };
 }
+var RouterSetupError;
 var init_runRoute = __esm({
   "lib/router/runRoute.ts"() {
     "use strict";
@@ -4621,6 +4633,13 @@ var init_runRoute = __esm({
     init_loadSkills();
     init_route();
     init_mockJudge();
+    RouterSetupError = class extends Error {
+      constructor(code, message) {
+        super(message);
+        this.code = code;
+      }
+      code;
+    };
   }
 });
 
@@ -5080,7 +5099,7 @@ async function main2(argv) {
   const findings = [...staticF];
   const probing = !bools.has("no-probe");
   const replayPath = opts.replay ? expandHome(opts.replay) : void 0;
-  const judgeName = opts.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "mock");
+  const judgeName = opts.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "jev");
   const probeSkills = only ? skills.filter((s) => only.includes(s.id)) : skills;
   if (only && !replayPath && probeSkills.length !== only.length) {
     const missing = only.filter((id) => !probeSkills.some((s) => s.id === id));
@@ -5169,6 +5188,7 @@ async function main2(argv) {
       judge = await createJudgeByName(judgeName);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
+      if (err instanceof RouterSetupError) console.error("Or pass --no-probe for the free static findings only.");
       process.exit(1);
     }
     const outcomes = await runProbes(probeSkills, skills, judge);
