@@ -2,7 +2,8 @@
 // finding names its evidence and exactly one action ("uninstall X", "add a 'not for Y'
 // clause to Z", "add W to exclude") — never a wall of similarity scores.
 //
-//   npm run doctor                      # static findings + Jev probes (projects Noul cost first)
+//   npm run doctor                      # static findings + Jev probes (projects Noul cost first;
+//                                       # with no key, static findings only, probes skipped)
 //   npm run doctor -- --judge mock      # free probes that see only lexical confusion
 //   npm run doctor -- --no-probe        # static only: always free, no judge at all
 //   npm run doctor -- --dry-run         # print the probe cost projection and exit
@@ -38,7 +39,7 @@ import {
 } from '../lib/doctor.js'
 import type { DoctorConfig, DoctorRecording, Finding, ProbeOutcome } from '../lib/doctor.js'
 import { expandHome, loadConfigFile, stringList } from '../lib/config.js'
-import { createJudgeByName, RouterSetupError } from '../lib/router/runRoute.js'
+import { createJudgeByName, jevKeyAvailable, RouterSetupError } from '../lib/router/runRoute.js'
 import { loadSkills, routableSkillIds, scanUnroutable } from '../lib/skills/loadSkills.js'
 import { DEFAULT_ROUTE_OPTIONS } from '../lib/skills/types.js'
 import type { JevJudge } from '../lib/router/judge.js'
@@ -118,9 +119,13 @@ export async function main(argv: string[]): Promise<void> {
   const findings: Finding[] = [...staticF]
 
   // ---- Probe layer -----------------------------------------------------------------
-  const probing = !bools.has('no-probe')
   const replayPath = opts.replay ? expandHome(opts.replay) : undefined
   const judgeName = opts.judge ?? (cfg.judge === 'jev' || cfg.judge === 'mock' ? cfg.judge : 'jev')
+  // Static findings are free, so a run without a key still reports them and says the
+  // probes were skipped. Only an explicit --judge jev makes a missing key an error.
+  const skipForKey =
+    !bools.has('no-probe') && !replayPath && judgeName === 'jev' && opts.judge === undefined && !jevKeyAvailable()
+  const probing = !bools.has('no-probe') && !skipForKey
   const probeSkills = only ? skills.filter((s) => only.includes(s.id)) : skills
   if (only && !replayPath && probeSkills.length !== only.length) {
     const missing = only.filter((id) => !probeSkills.some((s) => s.id === id))
@@ -148,7 +153,9 @@ export async function main(argv: string[]): Promise<void> {
     }
   } else if (bools.has('dry-run')) {
     console.error(
-      `Dry run — probes would be free (${!probing ? 'probes disabled' : replayPath ? 'replaying a recording' : `judge=${judgeName}`}).`
+      skipForKey
+        ? 'Dry run — no TYPESAFE_API_KEY, so a real run would skip the probes and report static findings only.'
+        : `Dry run — probes would be free (${!probing ? 'probes disabled' : replayPath ? 'replaying a recording' : `judge=${judgeName}`}).`
     )
     process.exit(0)
   }
@@ -296,8 +303,11 @@ export async function main(argv: string[]): Promise<void> {
   console.log(
     probing
       ? `Overlap measured by routing probes: judge=${probeJudge}${replayPath ? ' (replayed)' : ''}, t=${threshold}` +
-          (probeJudge === 'mock' ? '  (mock sees only lexical confusion — use --judge jev for semantic overlap)' : '')
-      : 'Probes disabled (--no-probe): static findings only'
+          (probeJudge === 'mock' ? '  (mock sees only lexical confusion; the Jev judge finds semantic overlap)' : '')
+      : skipForKey
+        ? 'Probes skipped: no TYPESAFE_API_KEY, so static findings only. Set the key for overlap probes, ' +
+          'or pass --judge mock for free keyword-only ones.'
+        : 'Probes disabled (--no-probe): static findings only'
   )
 
   if (ordered.length === 0) {

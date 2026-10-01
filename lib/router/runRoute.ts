@@ -85,6 +85,12 @@ function loadJevKey(): void {
   }
 }
 
+/** True when a Jev key can be found (environment, plugin option, or a .env.local). */
+export function jevKeyAvailable(): boolean {
+  loadJevKey()
+  return Boolean(process.env.TYPESAFE_API_KEY)
+}
+
 /** Build the named judge, loading the jev key if needed. Throws with a user-facing message. */
 export async function createJudgeByName(name: string): Promise<JevJudge> {
   if (name === 'jev') {

@@ -4562,6 +4562,10 @@ function loadJevKey() {
     if (process.env.TYPESAFE_API_KEY) return;
   }
 }
+function jevKeyAvailable() {
+  loadJevKey();
+  return Boolean(process.env.TYPESAFE_API_KEY);
+}
 async function createJudgeByName(name) {
   if (name === "jev") {
     loadJevKey();
@@ -5097,9 +5101,10 @@ async function main2(argv) {
     routableSkillIds(skillsDir)
   );
   const findings = [...staticF];
-  const probing = !bools.has("no-probe");
   const replayPath = opts.replay ? expandHome(opts.replay) : void 0;
   const judgeName = opts.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "jev");
+  const skipForKey = !bools.has("no-probe") && !replayPath && judgeName === "jev" && opts.judge === void 0 && !jevKeyAvailable();
+  const probing = !bools.has("no-probe") && !skipForKey;
   const probeSkills = only ? skills.filter((s) => only.includes(s.id)) : skills;
   if (only && !replayPath && probeSkills.length !== only.length) {
     const missing = only.filter((id) => !probeSkills.some((s) => s.id === id));
@@ -5123,7 +5128,7 @@ async function main2(argv) {
     }
   } else if (bools.has("dry-run")) {
     console.error(
-      `Dry run \u2014 probes would be free (${!probing ? "probes disabled" : replayPath ? "replaying a recording" : `judge=${judgeName}`}).`
+      skipForKey ? "Dry run \u2014 no TYPESAFE_API_KEY, so a real run would skip the probes and report static findings only." : `Dry run \u2014 probes would be free (${!probing ? "probes disabled" : replayPath ? "replaying a recording" : `judge=${judgeName}`}).`
     );
     process.exit(0);
   }
@@ -5247,7 +5252,7 @@ route doctor \u2014 ${skillsDir}`);
     `Catalog: ${comp.catalogSize} skills` + (excluded.length ? ` (+${excluded.length} excluded: ${excluded.join(", ")})` : "") + ` \xB7 ${comp.standalone} standalone` + (suiteSummary ? ` \xB7 suites: ${suiteSummary}` : "") + ` \xB7 median routing surface ${comp.medianKeywords} keywords`
   );
   console.log(
-    probing ? `Overlap measured by routing probes: judge=${probeJudge}${replayPath ? " (replayed)" : ""}, t=${threshold}` + (probeJudge === "mock" ? "  (mock sees only lexical confusion \u2014 use --judge jev for semantic overlap)" : "") : "Probes disabled (--no-probe): static findings only"
+    probing ? `Overlap measured by routing probes: judge=${probeJudge}${replayPath ? " (replayed)" : ""}, t=${threshold}` + (probeJudge === "mock" ? "  (mock sees only lexical confusion; the Jev judge finds semantic overlap)" : "") : skipForKey ? "Probes skipped: no TYPESAFE_API_KEY, so static findings only. Set the key for overlap probes, or pass --judge mock for free keyword-only ones." : "Probes disabled (--no-probe): static findings only"
   );
   if (ordered.length === 0) {
     console.log("\nNo findings \u2014 the catalog routes clean.");

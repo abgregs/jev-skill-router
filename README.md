@@ -208,8 +208,10 @@ user already decided they ride along.
 Probes judge with Jev by default, which is what finds semantic overlap; `--judge mock`
 probes are free but see only lexical confusion. Each probe judges the whole catalog, so
 cost is probes × catalog size — projected before spending (53 skills → 2,809 Nouls for a
-full sweep) and refused past `--max-nouls` (default 3000). `--no-probe` gives the always-free static report,
-`--dry-run` prints the projection, `--json` a machine-readable report.
+full sweep) and refused past `--max-nouls` (default 3000). Without a key, a plain run
+reports the static findings and says the probes were skipped. `--no-probe` gives the
+always-free static report, `--dry-run` prints the projection, `--json` a machine-readable
+report.
 
 Paid sweeps never evaporate: jev runs auto-record raw probe probabilities (no threshold
 baked in) to `fixtures/recordings/doctor-probes.json`, `--only` re-probes merge into the
