@@ -645,23 +645,23 @@ const WORKED = {
   'build-animation': {
     text:
       'Worked example, 1 of 2. These skills invoke together because they really do overlap. ' +
-      'better-ui and make-interfaces-feel-better are documented duplicates at 0.97 each, and ' +
+      'better-ui and make-interfaces-feel-better are documented duplicates at 0.98 each, and ' +
       'impeccable is a broad umbrella over the same ground (see Doctor). The router shows the ' +
       'overlap rather than hiding it, since an extra skill costs tokens while a missed one ' +
       'costs the answer. The exclude list and the threshold are the dials. And better-interface, ' +
-      'the skill that reviews a whole screen across every design domain at once, sits at 0.08. ' +
+      'the skill that reviews a whole screen across every design domain at once, sits at 0.09. ' +
       'This ask is one build task, not a full review, so it stays out.',
     flip: 'holistic-review',
-    // the note cites better-interface at 0.08, far below the cut: pull it up
+    // the note cites better-interface at 0.09, far below the cut: pull it up
     pull: ['better-interface'],
     flipLabel: 'compare the holistic ask →'
   },
   'holistic-review': {
     text:
-      'Worked example, 2 of 2. better-interface, which sat at 0.08 on the build task, ' +
-      'jumps to 0.96 here. Five skills clear the bar and invoke together. Three more ' +
-      'sit just under it, from make-interfaces-feel-better at 0.84 down to 0.80, and ' +
-      'land in suggest. Co-invocation beats a missed skill, and Doctor and ' +
+      'Worked example, 2 of 2. better-interface, which sat at 0.09 on the build task, ' +
+      'jumps to 0.97 here. Eight skills clear the bar and the cap of six binds: three tie ' +
+      'at 0.86 for the last slot, so two of them drop to suggest beside two more at 0.83 ' +
+      'and 0.81. Co-invocation beats a missed skill, and Doctor, the cap and ' +
       'the thresholds keep it under control.',
     flip: 'build-animation',
     flipLabel: '← compare the single-domain build task'

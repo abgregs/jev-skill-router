@@ -62,7 +62,7 @@ flowchart LR
 - **The gate:** denies routed skills that aren't on the turn's list. It fails open: a
   relevance filter, not a lock.
 - **Fast at any size:** every skill is judged in parallel. Recorded runs: 51 skills in
-  128–405ms, 1,064 in about half a second.
+  121–270ms, 1,064 in about half a second.
 
 Details: [how routing works](docs/architecture/how-routing-works.md) ·
 [Claude Code hooks](docs/guide/claude-code-hooks.md).
@@ -112,7 +112,7 @@ All keys, file precedence, and the `config` command: [configuration](docs/guide/
 ## Results
 
 > [!IMPORTANT]
-> These are the only routing-quality numbers the repo claims: 17 recorded runs on the
+> These are the only routing-quality numbers the repo claims: 44 recorded runs on the
 > released router, captured 2026-10-01 on a real 51-skill catalog, judged on the same inputs
 > the plugin sends.
 
@@ -121,9 +121,10 @@ All keys, file precedence, and the `config` command: [configuration](docs/guide/
 | Needed skills invoked (11 tasks) | **13 / 13** |
 | User-only skill left alone | **1 / 1** |
 | Off-catalog asks with no stand-in invoked | **5 / 5** |
+| Prompts needing no skill with nothing invoked | **27 / 27** |
 
 - The top-scoring skill landed at 0.97–0.99 on every task; on the off-catalog asks, the best
-  wrong candidate topped out between 0.27 and 0.52.
+  wrong candidate topped out between 0.29 and 0.61.
 - Small, single-turn, and labeled by us: evidence, not a benchmark.
 
 Full breakdown and caveats: [results](docs/evaluation/results.md).

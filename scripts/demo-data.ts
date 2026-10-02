@@ -8,7 +8,7 @@ import { route, applyPolicy, createRecordedJudge, runFromEvalRecording } from '.
 import { loadSkills } from '../lib/skills/loadSkills.js'
 import { synthesizeCatalog } from '../lib/skills/synthesize.js'
 import type { Skill, SkillScore, SessionState } from '../lib/skills/types.js'
-import { SESSIONS } from '../fixtures/sessions.js'
+import { FIXTURE_TRUTH_EXTRA, SESSIONS } from '../fixtures/sessions.js'
 
 // Builds the recorded demo's static data: every captured real-Jev run replayed through
 // the REAL pipeline, written once to web/data/replays.json. The browser only renders.
@@ -39,17 +39,6 @@ const TEST_STRIP_THRESHOLDS = [0.8, 0.85, 0.9]
 // dropping them is an exact projection onto the 51-skill catalog and every other
 // number is unchanged. The raw recordings keep the full 53-skill judgment.
 const DISPLAY_EXCLUDE = new Set(['brief', 'debrief'])
-
-// Ground-truth additions, display layer only — fixtures/sessions.ts stays
-// pre-registered for the bench. Each entry is decided per fixture from the query
-// and the skill's description, never from the run: truth is the skill each part
-// of the ask can't do without, so skills that fit but aren't needed stay unmarked.
-// maps-latency asks to look into a latency regression and diagnosing-bugs, which
-// names performance-regression diagnosis as a use case, is the only real skill
-// that covers it.
-const FIXTURE_TRUTH_EXTRA: Record<string, string[]> = {
-  'maps-latency': ['diagnosing-bugs']
-}
 
 interface CapturedRun {
   probabilities: Record<string, number>

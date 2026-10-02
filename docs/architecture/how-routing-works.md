@@ -30,7 +30,7 @@ the sum.
 
 | Catalog | Recorded wall-clock |
 |---|---|
-| Real, 51 skills (1 request) | 128–405ms |
+| Real, 51 skills (1 request) | 121–270ms |
 | Synthetic, 1,064 skills (5 parallel shards) | 479–545ms |
 
 This is also what scales past the 255 `Choice` cap: a Choice can't shard (shard winners

@@ -17,6 +17,7 @@
     "config": "tsx scripts/cli.ts config",
     "route:live": "tsx scripts/route-live.ts",
     "eval:capture": "tsx scripts/eval-capture.ts",
+    "eval:report": "tsx scripts/eval-report.ts",
     "bench:session": "tsx scripts/session-bench.ts",
     "demo": "tsx web/serve.ts",
     "typecheck": "tsc --noEmit",

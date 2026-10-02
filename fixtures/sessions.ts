@@ -234,3 +234,14 @@ export const SESSIONS: LabeledSession[] = [
     targets: ['real']
   }
 ]
+
+// Ground-truth additions, display layer and reports only — SESSIONS
+// stays pre-registered for the bench. Each entry is decided per fixture from the query
+// and the skill's description, never from the run: truth is the skill each part
+// of the ask can't do without, so skills that fit but aren't needed stay unmarked.
+// maps-latency asks to look into a latency regression and diagnosing-bugs, which
+// names performance-regression diagnosis as a use case, is the only real skill
+// that covers it.
+export const FIXTURE_TRUTH_EXTRA: Record<string, string[]> = {
+  'maps-latency': ['diagnosing-bugs']
+}

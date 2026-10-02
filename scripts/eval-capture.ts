@@ -8,6 +8,10 @@
 //   npm run eval:capture -- --dry-run                            # just print projected cost
 //   npm run eval:capture -- --catalog real --fixtures payments-rollback
 //   npm run eval:capture -- --catalog both --max-nouls 6000      # allow the big synthetic run
+//   npm run eval:capture -- --catalog real --set all
+//
+// --set picks the fixtures: `tasks` (sessions.ts, the default), `no-skill` (prompts that
+// need no skill; real catalog only), or `all`.
 //
 // Cost is REAL: one Noul per judged skill. Synthetic runs are ~1000 Nouls PER fixture, so
 // the script refuses to exceed --max-nouls (default 2000) unless you raise it deliberately.
@@ -20,6 +24,8 @@ import { synthesizeCatalog } from '../lib/skills/synthesize.js'
 import { DEFAULT_ROUTE_OPTIONS } from '../lib/skills/types.js'
 import type { RouteResult, Skill } from '../lib/skills/types.js'
 import { SESSIONS, fixtureTargets } from '../fixtures/sessions.js'
+import type { LabeledSession } from '../fixtures/sessions.js'
+import { NO_SKILL_SESSIONS } from '../fixtures/no-skill-sessions.js'
 
 function parseArgs(argv: string[]): { opts: Record<string, string>; bools: Set<string> } {
   const opts: Record<string, string> = {}
@@ -70,10 +76,31 @@ const skillsDir = expandHome(opts['skills-dir'] ?? process.env.SKILLS_DIR ?? '~/
 // recording captures the catalog the user actually routes on.
 const exclude = new Set(opts.exclude?.split(',').map((s) => s.trim()).filter(Boolean) ?? [])
 
+// No-skill prompts are labeled against the real catalog only: expected is empty, and
+// any invoked skill is a needless load.
+const noSkill: LabeledSession[] = NO_SKILL_SESSIONS.map((s) => ({
+  id: s.id,
+  session: s.session,
+  expected: [],
+  targets: ['real']
+}))
+const noSkillIds = new Set(noSkill.map((s) => s.id))
+const which = opts.set ?? 'tasks'
+const pool =
+  which === 'tasks' ? SESSIONS : which === 'no-skill' ? noSkill : which === 'all' ? [...SESSIONS, ...noSkill] : null
+if (!pool) {
+  console.error(`Unknown --set ${which}. Use tasks, no-skill, or all.`)
+  process.exit(1)
+}
+if (which !== 'tasks' && whichCatalogs !== 'real') {
+  console.error('No-skill fixtures are labeled against the real catalog. Add --catalog real.')
+  process.exit(1)
+}
+
 const fixtureFilter = opts.fixtures?.split(',').map((x) => x.trim())
-const fixtures = fixtureFilter ? SESSIONS.filter((s) => fixtureFilter.includes(s.id)) : SESSIONS
+const fixtures = fixtureFilter ? pool.filter((s) => fixtureFilter.includes(s.id)) : pool
 if (fixtures.length === 0) {
-  console.error(`No matching fixtures. Available: ${SESSIONS.map((s) => s.id).join(', ')}`)
+  console.error(`No matching fixtures. Available: ${pool.map((s) => s.id).join(', ')}`)
   process.exit(1)
 }
 
@@ -148,7 +175,12 @@ for (const catalog of catalogs) {
     const run = await route(fixture.session, catalog.skills, judge)
     const selected = new Set(run.selected.map((s) => s.id))
 
-    const verdict = targeted
+    const isNoSkill = noSkillIds.has(fixture.id)
+    const verdict = isNoSkill
+      ? selected.size === 0
+        ? 'no-skill: nothing invoked ✓'
+        : `no-skill: NEEDLESS LOAD of ${[...selected].join(', ')}`
+      : targeted
       ? (() => {
           const g = prf(selected, truth)
           return `vs truth P=${g.precision.toFixed(2)} R=${g.recall.toFixed(2)} F1=${g.f1.toFixed(2)}`
@@ -172,6 +204,8 @@ for (const catalog of catalogs) {
       groundTruth: [...truth],
       /** True when this fixture's expected ids live in another catalog (abstention check). */
       negativeControl: !targeted,
+      /** True for a prompt that needs no skill: any invoked skill is a needless load. */
+      noSkill: isNoSkill,
       threshold: run.threshold ?? DEFAULT_ROUTE_OPTIONS.threshold,
       run: {
         probabilities: probMap(run),
@@ -181,7 +215,11 @@ for (const catalog of catalogs) {
         latencyMs: run.latencyMs
       }
     }
-    const file = resolve(outDir, `${catalog.name}-${fixture.id}.json`)
+    // No-skill recordings sit in their own folder so the demo, which reads the top
+    // level only, keeps showing the task fixtures.
+    const dir = isNoSkill ? resolve(outDir, 'no-skill') : outDir
+    mkdirSync(dir, { recursive: true })
+    const file = resolve(dir, `${catalog.name}-${fixture.id}.json`)
     writeFileSync(file, JSON.stringify(recording, null, 2))
     console.log(`wrote ${file}`)
   }
