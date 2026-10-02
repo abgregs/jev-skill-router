@@ -49,9 +49,11 @@ function skillNoul(skill: Skill) {
       `from preceding turns and often describes prior tasks already finished.`,
     {
       true: 'The current request clearly calls for this skill.',
+      // No "a different skill fits better" clause: this Noul sees only its own skill,
+      // so it cannot judge that comparison.
       false:
         'This skill is unrelated to the current request — even if earlier conversation ' +
-        'touched its domain — or a different skill fits better.'
+        'touched its domain.'
     }
   )
 }

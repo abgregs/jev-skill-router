@@ -4498,7 +4498,9 @@ What it does: ${skill.description}
 Should the agent invoke this skill for the user's current request (currentRequest)? Judge against the current request alone; earlierConversationBackground is context from preceding turns and often describes prior tasks already finished.`,
     {
       true: "The current request clearly calls for this skill.",
-      false: "This skill is unrelated to the current request \u2014 even if earlier conversation touched its domain \u2014 or a different skill fits better."
+      // No "a different skill fits better" clause: this Noul sees only its own skill,
+      // so it cannot judge that comparison.
+      false: "This skill is unrelated to the current request \u2014 even if earlier conversation touched its domain."
     }
   );
 }
