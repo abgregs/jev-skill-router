@@ -6,7 +6,7 @@ Curated snapshots of `npm run bench:session` output, promoted from the gitignore
 **Development runs.** Everything on this page, the manual smoke tests and probes included,
 was recorded on pre-release router builds while the router was being built. These runs
 explain design decisions; they are not results for the released router. The only claimed
-results are the recorded runs in the root README's Results section.
+results are the recorded runs in docs/evaluation/results.md.
 
 - `bench-2026-09-21T22-25-14.json` — 6 fixtures × 3 reps × 2 arms, sonnet.
   Run against the pre-rewrite router (prefilter shortlist still in place); the

@@ -26,7 +26,7 @@ import { route } from './router/route.js'
 //
 // Suites are exempt from overlap findings: same-prefix families (better-*) and
 // skills whose descriptions cross-reference each other encode an author-designed
-// hierarchy the router already reads correctly (see README finding) — co-firing
+// hierarchy the router already reads correctly (see docs/findings/0001) — co-firing
 // inside one is the author's business, not a catalog fault.
 
 export type FindingKind =
