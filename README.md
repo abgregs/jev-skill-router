@@ -4,7 +4,7 @@
 scores every skill against every prompt, turning the model's hidden "should I use this
 skill?" judgment call into probabilities that code can act on.
 
-[Demo](https://abgregs.github.io/jev-skill-router/) · [Install](#install) ·
+[Demo](https://abgregs.github.io/jev-skill-router/) · [Install](#install) · [Why](#why) ·
 [How it works](#how-it-works) · [Everyday use](#everyday-use) ·
 [Configuration](#configuration) · [Results](#results) · [Docs](docs/README.md)
 
