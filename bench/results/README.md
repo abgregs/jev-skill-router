@@ -4,7 +4,8 @@ Curated snapshots of `npm run bench:session` output, promoted from the gitignore
 `bench/session-results/` scratch dir so the evidence travels with the repo.
 
 **Development runs.** Everything on this page, the manual smoke tests and probes included,
-was recorded on pre-release router builds while the router was being built. These runs
+was recorded on pre-release router builds while the router was being built, except the
+2026-10-01 cross-model probes, which ran the released router. These runs
 explain design decisions; they are not results for the released router. The only claimed
 results are the recorded runs in docs/evaluation/results.md.
 
@@ -220,6 +221,39 @@ asymmetry again. Probe gotcha for the record: a first haiku attempt inherited
 the parent session's environment and its hook routed a leaked <task-notification>
 payload (correctly to an empty verdict) — nested claude -p probes need a clean
 env before reading their state files.
+
+## Cross-model probes re-run — 2026-10-01 (released router, both arms)
+
+Re-run of the two 2026-09-25 probes with `bench/cross-model-probe.sh`, which now feeds the
+demo opener. Same a11y-widget prompt, a fresh stub workspace per session, `--max-turns 4`,
+clean environment (`env -i`). **Stock:** the installed plugin switched off; every session
+listed 95 skills including better-accessibility. **Routed:** the installed plugin switched
+off and the working tree loaded with `--plugin-dir`, so the hooks were the current code.
+n=1 per model per arm (the stock arm ran twice after an interrupted first attempt, with the
+same skill outcome per model): a pattern check, not a benchmark. Transcripts stayed local
+in the gitignored `bench/session-results/cross-model-20261001-221212/`.
+
+| Model | Stock: skills loaded | Routed: skills loaded |
+|---|---|---|
+| fable | better-accessibility (first action) | better-accessibility, diagnosing-bugs |
+| sonnet | better-accessibility (first action) | better-accessibility, diagnosing-bugs |
+| opus | better-accessibility (after one exploratory Bash) | better-accessibility |
+| haiku | none (Bash → Read → Edit) | better-accessibility |
+
+Routed verdict identical on all four: invoke [better-accessibility, diagnosing-bugs],
+suggest [brief] (the live config routes `brief`; the recordings exclude it, hence their
+suggest [impeccable]). Every routed session loaded better-accessibility as its first action.
+
+**What changed from 2026-09-25.** The stock result reversed: three of four models found the
+skill, where the earlier probes recorded one (fable) and three no-loads. The likely cause is
+the earlier setup, not the models: those probes used `--setting-sources project`, which may
+have kept personal skills from loading at all (transcripts weren't kept, so it can't be
+checked), and sonnet's 0-of-3 came from the development bench. Routed compliance also moved:
+haiku now loads the lead skill (it loaded nothing before), and opus loaded one of the two.
+
+**What still separates the arms on this prompt:** haiku loads a skill only when routed;
+diagnosing-bugs loads only when routed (0/4 stock, 2/4 routed); and routed sessions load the
+skill before anything else. The demo opener's rotor and captions were updated to these runs.
 
 ## Judge repeat-call variance — VERIFIED 2026-09-26 (supersedes earlier micro-test)
 
