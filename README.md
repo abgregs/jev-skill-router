@@ -1,12 +1,12 @@
 # jev-skill-router
 
 A [Jev](https://typesafe.ai)-powered router that decides **which agent skills a coding
-agent should invoke** for the current session — turning the model's fuzzy "should I use
-this skill?" guess into typed, thresholdable probabilities that code can act on.
+agent should invoke** for the current session — turning the model's hidden "should I use
+this skill?" judgment call into typed, thresholdable probabilities that code can act on.
 
 The problem: a coding agent (Claude Code, etc.) may have dozens — or, in a large org,
 **thousands** — of local and global skills. Whether to fire one depends on the whole
-session (latest query, open files, transcript, `CLAUDE.md` rules). That's genuinely
+session (the latest ask and the conversation around it). That's genuinely
 ambiguous — exactly the "programmable common sense" Jev is for.
 
 ## Install
@@ -31,6 +31,12 @@ That registers two hooks. Every prompt is routed against your installed skills *
 the model sees the turn, and the verdict is injected into context ("Invoke: … / Also
 relevant: …"); a gate then holds the routed skills to that list — fail-open, and skills
 the router never judged pass untouched.
+
+**What Jev reads.** Your prompt, with the last ~2,000 characters of user and assistant
+text as background, judged against each skill's name and description. It doesn't read
+`CLAUDE.md`, open files, or tool output; the model still sees all of those as usual. If a
+`CLAUDE.md` rule requires a skill, add that skill to `alwaysAllow` so the gate never turns
+it away.
 
 **To be sure a skill runs, slash-invoke it.** Typing `/git-commit` always gets it
 through: the router adds it to the verdict and the gate lets it pass. Asking in words
@@ -65,9 +71,10 @@ hides it until you run `npm link` again. `npm rm -g jev-skill-router` removes it
 ## Results — the released router, recorded runs only
 
 These are the only numbers this repo claims for routing quality: the 17 real-catalog runs in
-`fixtures/recordings/` (captured 2026-09-28), replayed through the shipped policy (threshold
-0.85, suggest floor 0.80, cap 6). The judge prompt and policy code are unchanged since
-capture; `npm run demo:data` reproduces every row.
+`fixtures/recordings/` (captured 2026-10-01), replayed through the shipped policy (threshold
+0.85, suggest floor 0.80, cap 6). Jev judged each run on the same inputs the plugin and CLI send:
+the prompt and the conversation tail. The judge prompt and
+policy code are unchanged since capture; `npm run demo:data` reproduces every row.
 
 | Real catalog (51 skills), 17 fixtures | Result |
 |---|---|
@@ -79,13 +86,14 @@ capture; `npm run demo:data` reproduces every row.
 Every skill judged in 479–545ms across 5 parallel shards. The catalog is generated from
 templates: near-duplicate skills that differ by service name, some with deliberately
 overlapping descriptions. That makes it a stress test for speed and sharding, not a fair
-accuracy test, so its picks are illustrative and not counted above. Two of its labels were
+accuracy test, so its picks are illustrative and not counted above. Its runs predate the
+plugin-inputs rule and include the fixtures' open files. Two of its labels were
 corrected on 2026-09-29, after capture, on the first side-by-side read of query and
 descriptions (see `fixtures/sessions.ts`).
 
 - **Ground truth is ours.** One needed skill per part of the ask, labeled from the query
   and skill descriptions, never from a run's output. Related skills that also clear the bar
-  are welcome and ungraded: the 11 task fixtures invoked 26 skills for 13 needed ones.
+  are welcome and ungraded: the 11 task fixtures invoked 25 skills for 13 needed ones.
 - **Small and single-turn.** One capture per fixture. Read it as evidence, not a benchmark.
 - **These grade the verdict, not the session.** Whether the model then loads and uses the
   skills was studied only in live sessions during development.
@@ -113,7 +121,7 @@ what to do with the probabilities.
   needs to see another to be scored. So the catalog shards (250 Nouls per request by
   default) and the shards fan out concurrently via `Promise.all` — wall-clock ≈ the
   slowest single shard, not the sum. Measured with the live judge: **479–545ms over
-  1,064 skills** (5 parallel shards) and 132–306ms over the real 51-skill catalog in a
+  1,064 skills** (5 parallel shards) and 128–405ms over the real 51-skill catalog in a
   single request (see `fixtures/recordings/`). This is also what scales past the 255
   `Choice` cap: a Choice can't shard (shard winners would never meet), independent
   Nouls shard losslessly.
@@ -175,7 +183,7 @@ Provider-agnostic: reads `<slug>/SKILL.md` skills from a directory and prints wh
 would invoke. Skills follow the standard `npx skills` layout, so the default catalog is the
 canonical store `~/.agents/skills`; override with `--skills-dir` (e.g. `~/.claude/skills`) or
 `SKILLS_DIR`. Flags: `--judge mock|jev`, `--threshold`, `--suggest-floor`, `--max-selected`,
-`--top`, `--open-files a,b`, `--rules`, `--transcript`, `--config`, `--json`.
+`--top`, `--transcript`, `--config`, `--json`.
 Routing decides on **name + description** only — the real Agent Skills routing surface
 (progressive disclosure), so no skill bodies are read. This takes the convention at its
 word: the spec designates SKILL.md frontmatter `description` as where a skill states what
@@ -367,18 +375,19 @@ routes to domain leaves. In the tested catalog, `better-interface` describes its
 orchestrator over the `better-*` leaves ("holistic review rather than a single domain");
 the leaves scope themselves to one domain each. Nothing in the router knows this structure —
 no metadata, no naming heuristics; the hierarchy exists only in the descriptions. Two
-real-Jev fixtures (recaptured 2026-09-28, 51-skill catalog, shipped `currentRequest`
+real-Jev fixtures (recaptured 2026-10-01, 51-skill catalog, shipped `currentRequest`
 judge framing) show what the router reads:
 
 - **Direction discrimination is sharp, both ways.** On a single-domain build task
-  (`build-animation`) the orchestrator stays home at **0.07** while the domain skills
-  fire at 0.91–0.97; on the holistic ask (`holistic-review`) the same orchestrator
+  (`build-animation`) the orchestrator stays home at **0.08** while the domain skills
+  fire at 0.92–0.97; on the holistic ask (`holistic-review`) the same orchestrator
   scores **0.96** and the off-domain leaf (`animate`) sits at **0.03**. The hierarchy's
   *direction* is read from descriptions alone.
 - **Skills sharing the asked-about territory co-clear the bar.** On the holistic ask,
-  orchestrators and query-named leaves land at 0.87–0.98 and co-invoke up to
-  `maxSelected`; the 0.80–0.85 shoulder (`better-typography` 0.80) lands in the suggest
-  band, with `better-colors` just under the floor at 0.79. An earlier judge framing
+  orchestrators and query-named leaves land at 0.87–0.98 and co-invoke (five skills,
+  under the `maxSelected` cap); the 0.80–0.85 shoulder (`make-interfaces-feel-better`
+  0.84, `better-accessibility` 0.81, `emil-design-eng` 0.80) lands in the suggest band,
+  with `better-typography` just under the floor at 0.78. An earlier judge framing
   consolidated this shape (leaves dominated below threshold); the shipped `currentRequest` framing — adopted
   because it survives mid-session topic switches (see the transcript-weighting finding)
   — judges each skill against the current request alone, and genuine same-territory
