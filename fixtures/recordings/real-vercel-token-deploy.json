@@ -3,6 +3,10 @@
   "catalog": "real",
   "catalogSize": 51,
   "query": "set up the vercel cli with our team access token in the ci workflow and deploy from there — no interactive login available",
+  "judgedInputs": [
+    "latestQuery",
+    "transcript"
+  ],
   "groundTruth": [
     "vercel-cli-with-tokens"
   ],
@@ -10,31 +14,33 @@
   "threshold": 0.85,
   "run": {
     "probabilities": {
-      "vercel-cli-with-tokens": 0.96,
-      "deploy-to-vercel": 0.55,
-      "research": 0.33,
-      "sandbox-sdk": 0.16,
-      "sweep": 0.14,
-      "find-skills": 0.07,
+      "vercel-cli-with-tokens": 0.97,
+      "deploy-to-vercel": 0.59,
+      "research": 0.35,
+      "sandbox-sdk": 0.19,
+      "sweep": 0.16,
+      "find-skills": 0.08,
       "git-commit": 0.07,
-      "model-routing": 0.06,
       "codebase-design": 0.05,
-      "diagnosing-bugs": 0.04,
+      "model-routing": 0.05,
       "git-create-pr": 0.04,
-      "hunk-review": 0.03,
+      "diagnosing-bugs": 0.03,
       "tdd": 0.03,
-      "workers-best-practices": 0.03,
-      "wrangler": 0.03,
       "writing-for-agents": 0.03,
       "agents-sdk": 0.02,
       "better-interface": 0.02,
+      "better-writing": 0.02,
       "cloudflare": 0.02,
+      "hunk-review": 0.02,
       "sandbox-next": 0.02,
       "sandbox-stable": 0.02,
       "setup-docs": 0.02,
       "typesafe-ai": 0.02,
       "vercel-react-best-practices": 0.02,
       "vercel-react-native-skills": 0.02,
+      "web-perf": 0.02,
+      "workers-best-practices": 0.02,
+      "wrangler": 0.02,
       "animate": 0.01,
       "animation-vocabulary": 0.01,
       "apple-design": 0.01,
@@ -43,7 +49,6 @@
       "better-layout": 0.01,
       "better-typography": 0.01,
       "better-ui": 0.01,
-      "better-writing": 0.01,
       "cloudflare-email-service": 0.01,
       "cloudflare-one": 0.01,
       "cloudflare-one-migrations": 0.01,
@@ -59,7 +64,6 @@
       "turnstile-spin": 0.01,
       "vercel-composition-patterns": 0.01,
       "web-design-guidelines": 0.01,
-      "web-perf": 0.01,
       "write-swift": 0.01
     },
     "selected": [
@@ -67,6 +71,6 @@
     ],
     "judgedCount": 51,
     "shards": 1,
-    "latencyMs": 152
+    "latencyMs": 155
   }
 }

@@ -642,19 +642,19 @@ const WORKED = {
       'impeccable is a broad umbrella over the same ground (see Doctor). The router shows the ' +
       'overlap rather than hiding it, since an extra skill costs tokens while a missed one ' +
       'costs the answer. The exclude list and the threshold are the dials. And better-interface, ' +
-      'the skill that reviews a whole screen across every design domain at once, sits at 0.07. ' +
+      'the skill that reviews a whole screen across every design domain at once, sits at 0.08. ' +
       'This ask is one build task, not a full review, so it stays out.',
     flip: 'holistic-review',
-    // the note cites better-interface at 0.07, far below the cut: pull it up
+    // the note cites better-interface at 0.08, far below the cut: pull it up
     pull: ['better-interface'],
     flipLabel: 'compare the holistic ask →'
   },
   'holistic-review': {
     text:
-      'Worked example, 2 of 2. better-interface, which sat at 0.07 on the build task, ' +
-      'jumps to 0.96 here. Seven skills clear the bar here and the invoke ' +
-      'cap of six drops the seventh, make-interfaces-feel-better at 0.87, into suggest ' +
-      'with its score untouched. Co-invocation beats a missed skill, and Doctor and ' +
+      'Worked example, 2 of 2. better-interface, which sat at 0.08 on the build task, ' +
+      'jumps to 0.96 here. Five skills clear the bar and invoke together. Three more ' +
+      'sit just under it, from make-interfaces-feel-better at 0.84 down to 0.80, and ' +
+      'land in suggest. Co-invocation beats a missed skill, and Doctor and ' +
       'the thresholds keep it under control.',
     flip: 'build-animation',
     flipLabel: '← compare the single-domain build task'

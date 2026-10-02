@@ -298,7 +298,7 @@ the motion because the conclusions carry it.
   it is honest). Long names truncate with an ellipsis inside their own span; footnote
   marks and the rank prefix sit outside it and never clip.
 - **FIG. 1's worked example:** the `build-animation` / `holistic-review` pair is the
-  featured comparison — direction discrimination (orchestrator 0.07 ↔ 0.96) beside
+  featured comparison — direction discrimination (orchestrator 0.08 ↔ 0.96) beside
   same-territory co-invocation — captioned with the control story: co-invocation is
   the router *reporting* measured overlap and erring toward it is the designed
   default (better observed outcomes, priced in tokens); the doctor names the overlap

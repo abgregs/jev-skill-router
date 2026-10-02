@@ -3,6 +3,10 @@
   "catalog": "real",
   "catalogSize": 51,
   "query": "rotate the api keys and credentials for the fraud service and run a dependency and container security scan before the audit on friday",
+  "judgedInputs": [
+    "latestQuery",
+    "transcript"
+  ],
   "groundTruth": [
     "rotate-secrets-fraud",
     "run-security-scan-fraud"
@@ -11,31 +15,33 @@
   "threshold": 0.85,
   "run": {
     "probabilities": {
-      "sweep": 0.28,
-      "wrangler": 0.21,
-      "sandbox-sdk": 0.12,
-      "model-routing": 0.09,
+      "sweep": 0.27,
+      "wrangler": 0.23,
+      "sandbox-sdk": 0.14,
+      "research": 0.09,
       "cloudflare": 0.08,
-      "research": 0.08,
+      "model-routing": 0.08,
       "workers-best-practices": 0.08,
       "cloudflare-one": 0.05,
+      "codebase-design": 0.05,
       "find-skills": 0.05,
-      "git-commit": 0.05,
       "vercel-cli-with-tokens": 0.05,
-      "codebase-design": 0.04,
+      "git-commit": 0.04,
+      "git-create-pr": 0.04,
       "sandbox-next": 0.04,
       "sandbox-stable": 0.04,
       "typesafe-ai": 0.04,
       "agents-sdk": 0.03,
       "diagnosing-bugs": 0.03,
-      "git-create-pr": 0.03,
       "hunk-review": 0.03,
-      "writing-for-agents": 0.03,
       "better-interface": 0.02,
       "better-writing": 0.02,
+      "cloudflare-email-service": 0.02,
       "durable-objects": 0.02,
+      "setup-docs": 0.02,
       "tdd": 0.02,
       "write-swift": 0.02,
+      "writing-for-agents": 0.02,
       "animate": 0.01,
       "animation-vocabulary": 0.01,
       "apple-design": 0.01,
@@ -44,7 +50,6 @@
       "better-layout": 0.01,
       "better-typography": 0.01,
       "better-ui": 0.01,
-      "cloudflare-email-service": 0.01,
       "cloudflare-one-migrations": 0.01,
       "deploy-to-vercel": 0.01,
       "emil-design-eng": 0.01,
@@ -54,7 +59,6 @@
       "make-interfaces-feel-better": 0.01,
       "migrate-radix-to-base": 0.01,
       "sandbox-migrate-to-next": 0.01,
-      "setup-docs": 0.01,
       "shadcn": 0.01,
       "turnstile-spin": 0.01,
       "vercel-composition-patterns": 0.01,
@@ -66,6 +70,6 @@
     "selected": [],
     "judgedCount": 51,
     "shards": 1,
-    "latencyMs": 143
+    "latencyMs": 185
   }
 }

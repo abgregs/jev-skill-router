@@ -3,6 +3,10 @@
   "catalog": "real",
   "catalogSize": 51,
   "query": "our custom combobox is broken for keyboard users and voiceover announces nothing — fix the focus management and aria wiring",
+  "judgedInputs": [
+    "latestQuery",
+    "transcript"
+  ],
   "groundTruth": [
     "better-accessibility"
   ],
@@ -11,36 +15,37 @@
   "run": {
     "probabilities": {
       "better-accessibility": 0.99,
-      "diagnosing-bugs": 0.92,
-      "impeccable": 0.81,
-      "shadcn": 0.7,
-      "web-design-guidelines": 0.7,
-      "sweep": 0.27,
-      "tdd": 0.23,
+      "diagnosing-bugs": 0.91,
+      "impeccable": 0.8,
+      "web-design-guidelines": 0.66,
+      "shadcn": 0.47,
+      "sweep": 0.39,
+      "tdd": 0.27,
       "research": 0.19,
       "codebase-design": 0.15,
-      "hunk-review": 0.12,
-      "better-interface": 0.11,
-      "vercel-composition-patterns": 0.11,
-      "emil-design-eng": 0.09,
-      "vercel-react-best-practices": 0.07,
-      "better-layout": 0.06,
+      "vercel-composition-patterns": 0.13,
+      "better-interface": 0.12,
+      "write-swift": 0.12,
+      "hunk-review": 0.11,
+      "vercel-react-native-skills": 0.11,
+      "emil-design-eng": 0.08,
       "model-routing": 0.06,
+      "better-layout": 0.05,
+      "vercel-react-best-practices": 0.05,
       "web-perf": 0.05,
       "better-ui": 0.04,
+      "better-writing": 0.04,
       "git-commit": 0.04,
       "git-create-pr": 0.04,
       "make-interfaces-feel-better": 0.04,
-      "better-writing": 0.03,
+      "sandbox-sdk": 0.04,
+      "typesafe-ai": 0.04,
       "find-skills": 0.03,
-      "sandbox-sdk": 0.03,
-      "typesafe-ai": 0.03,
       "agents-sdk": 0.02,
       "apple-design": 0.02,
       "migrate-radix-to-base": 0.02,
       "sandbox-next": 0.02,
-      "setup-docs": 0.02,
-      "vercel-react-native-skills": 0.02,
+      "sandbox-stable": 0.02,
       "writing-for-agents": 0.02,
       "animate": 0.01,
       "animation-vocabulary": 0.01,
@@ -55,12 +60,11 @@
       "find-animation-opportunities": 0.01,
       "improve-animations": 0.01,
       "sandbox-migrate-to-next": 0.01,
-      "sandbox-stable": 0.01,
+      "setup-docs": 0.01,
       "turnstile-spin": 0.01,
       "vercel-cli-with-tokens": 0.01,
       "workers-best-practices": 0.01,
-      "wrangler": 0.01,
-      "write-swift": 0.01
+      "wrangler": 0.01
     },
     "selected": [
       "better-accessibility",
@@ -68,6 +72,6 @@
     ],
     "judgedCount": 51,
     "shards": 1,
-    "latencyMs": 306
+    "latencyMs": 151
   }
 }

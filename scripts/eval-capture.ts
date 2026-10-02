@@ -167,6 +167,8 @@ for (const catalog of catalogs) {
       catalog: catalog.name,
       catalogSize: catalog.skills.length,
       query: fixture.session.latestQuery,
+      /** Session fields the judge saw: the same two the plugin and CLI send. */
+      judgedInputs: ['latestQuery', 'transcript'],
       groundTruth: [...truth],
       /** True when this fixture's expected ids live in another catalog (abstention check). */
       negativeControl: !targeted,

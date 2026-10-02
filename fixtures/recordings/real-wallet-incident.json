@@ -3,35 +3,38 @@
   "catalog": "real",
   "catalogSize": 51,
   "query": "prod is down for the wallet service — open a production incident and coordinate the bridge, and once we mitigate write the blameless postmortem",
+  "judgedInputs": [
+    "latestQuery",
+    "transcript"
+  ],
   "groundTruth": [
-    "open-incident",
-    "write-postmortem"
+    "open-incident"
   ],
   "negativeControl": true,
   "threshold": 0.85,
   "run": {
     "probabilities": {
-      "diagnosing-bugs": 0.35,
-      "sandbox-stable": 0.11,
+      "diagnosing-bugs": 0.36,
       "cloudflare": 0.1,
-      "model-routing": 0.1,
-      "sweep": 0.1,
+      "model-routing": 0.09,
+      "sandbox-stable": 0.09,
+      "sweep": 0.09,
       "research": 0.07,
       "wrangler": 0.07,
       "cloudflare-email-service": 0.06,
       "typesafe-ai": 0.05,
       "workers-best-practices": 0.05,
       "better-writing": 0.04,
+      "cloudflare-one": 0.04,
       "agents-sdk": 0.03,
-      "cloudflare-one": 0.03,
       "codebase-design": 0.03,
+      "durable-objects": 0.03,
       "find-skills": 0.03,
       "sandbox-sdk": 0.03,
       "tdd": 0.03,
       "write-swift": 0.03,
       "writing-for-agents": 0.03,
       "better-interface": 0.02,
-      "durable-objects": 0.02,
       "git-commit": 0.02,
       "git-create-pr": 0.02,
       "hunk-review": 0.02,
@@ -66,6 +69,6 @@
     "selected": [],
     "judgedCount": 51,
     "shards": 1,
-    "latencyMs": 186
+    "latencyMs": 200
   }
 }

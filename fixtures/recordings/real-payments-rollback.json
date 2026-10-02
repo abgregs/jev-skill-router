@@ -3,36 +3,40 @@
   "catalog": "real",
   "catalogSize": 51,
   "query": "the payments service is throwing 500s at checkout right after the last release — roll it back to the previous version and pull up the datadog dashboard for the error rate",
+  "judgedInputs": [
+    "latestQuery",
+    "transcript"
+  ],
   "groundTruth": [
-    "rollback-release-payments",
-    "create-datadog-dashboard-payments"
+    "rollback-release-payments"
   ],
   "negativeControl": true,
   "threshold": 0.85,
   "run": {
     "probabilities": {
-      "diagnosing-bugs": 0.4,
+      "diagnosing-bugs": 0.52,
+      "vercel-cli-with-tokens": 0.1,
       "sweep": 0.08,
-      "sandbox-sdk": 0.06,
+      "wrangler": 0.07,
       "model-routing": 0.05,
-      "research": 0.05,
-      "vercel-cli-with-tokens": 0.05,
-      "git-commit": 0.04,
-      "git-create-pr": 0.04,
-      "hunk-review": 0.04,
-      "wrangler": 0.04,
-      "cloudflare": 0.03,
-      "codebase-design": 0.03,
+      "cloudflare": 0.04,
+      "research": 0.04,
+      "sandbox-sdk": 0.04,
+      "agents-sdk": 0.03,
       "deploy-to-vercel": 0.03,
-      "find-skills": 0.03,
+      "git-commit": 0.03,
+      "git-create-pr": 0.03,
+      "hunk-review": 0.03,
       "typesafe-ai": 0.03,
-      "agents-sdk": 0.02,
+      "workers-best-practices": 0.03,
       "better-interface": 0.02,
+      "codebase-design": 0.02,
+      "find-skills": 0.02,
       "sandbox-next": 0.02,
       "sandbox-stable": 0.02,
       "tdd": 0.02,
       "web-perf": 0.02,
-      "workers-best-practices": 0.02,
+      "write-swift": 0.02,
       "writing-for-agents": 0.02,
       "animate": 0.01,
       "animation-vocabulary": 0.01,
@@ -60,12 +64,11 @@
       "vercel-composition-patterns": 0.01,
       "vercel-react-best-practices": 0.01,
       "vercel-react-native-skills": 0.01,
-      "web-design-guidelines": 0.01,
-      "write-swift": 0.01
+      "web-design-guidelines": 0.01
     },
     "selected": [],
     "judgedCount": 51,
     "shards": 1,
-    "latencyMs": 208
+    "latencyMs": 252
   }
 }
