@@ -29,9 +29,9 @@ const DEFAULTS: Required<MockJudgeConfig> = {
   perNoulMs: 4
 }
 
-// Signal weights: the latest user message is the strongest routing cue; open files
-// and the running transcript add context; project rules nudge but don't dominate.
-const WEIGHTS = { latestQuery: 3, openFiles: 2, transcript: 1, projectRules: 1 }
+// Keyword weights for this mock only, not a model of how Jev weighs anything: the
+// latest message counts three times the transcript tail.
+const WEIGHTS = { latestQuery: 3, transcript: 1 }
 
 function sessionTermWeights(session: SessionState): Map<string, number> {
   const weights = new Map<string, number>()
@@ -42,9 +42,7 @@ function sessionTermWeights(session: SessionState): Map<string, number> {
     }
   }
   add(session.latestQuery, WEIGHTS.latestQuery)
-  add(session.openFiles?.join(' '), WEIGHTS.openFiles)
   add(session.transcript, WEIGHTS.transcript)
-  add(session.projectRules, WEIGHTS.projectRules)
   return weights
 }
 

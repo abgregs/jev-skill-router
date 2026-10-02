@@ -37,8 +37,6 @@ export const SESSIONS: LabeledSession[] = [
         'the payments service is throwing 500s at checkout right after the last release — ' +
         'roll it back to the previous version and pull up the datadog dashboard for the error rate',
       transcript: 'User: on-call for payments tonight. Assistant: watching the payments error budget.',
-      openFiles: ['services/payments/checkout_handler.go'],
-      projectRules: 'Prefer rollback over hotfix during an active incident.'
     },
     // NOT rollback-migration (wrong verb) and NOT rollback-release-maps (wrong service).
     // "Pull up the dashboard" means view an existing one; create-datadog-dashboard
@@ -54,7 +52,6 @@ export const SESSIONS: LabeledSession[] = [
         'eta lookups in the maps service got slow this afternoon — trace the latency regression ' +
         'with distributed traces and add an slo alert so we page next time',
       transcript: 'User: maps p99 climbed after lunch.',
-      openFiles: ['services/maps/eta.rs']
     },
     expected: ['trace-latency-regression-maps', 'add-slo-alert-maps']
   },
@@ -64,7 +61,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'add a new grpc endpoint to the driver service and regenerate the protobuf stubs from the updated proto',
       transcript: 'User: extending the driver API for the new dispatch flow.',
-      openFiles: ['services/driver/api.proto']
     },
     // Per-service endpoint work PLUS the org-wide protobuf skill.
     expected: ['add-grpc-endpoint-driver', 'generate-protobuf']
@@ -103,7 +99,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'our react components still use radix ui primitives — migrate the dialog and dropdown-menu over to base ui',
       transcript: 'User: moving the design system off radix this sprint.',
-      openFiles: ['components/ui/dialog.tsx']
     },
     // Uniquely migrate-radix-to-base; nothing else in the catalog does migration.
     expected: ['migrate-radix-to-base'],
@@ -115,7 +110,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'set up the vercel cli with our team access token in the ci workflow and deploy from there — no interactive login available',
       transcript: 'User: wiring up the release pipeline in github actions.',
-      openFiles: ['.github/workflows/deploy.yml']
     },
     // The token/non-interactive constraint picks vercel-cli-with-tokens over its
     // near-twin deploy-to-vercel (interactive login) — the real-catalog twin trap.
@@ -128,7 +122,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'commit the staged retry-logic changes with a proper conventional message, then push the branch and open a pr for review',
       transcript: 'User: wrapped up the retry backoff changes, tests green.',
-      openFiles: ['src/retry.ts']
     },
     // Two-skill ground truth spanning the whole workflow.
     expected: ['git-commit', 'git-create-pr'],
@@ -140,7 +133,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'migrate this module to swift 6 strict concurrency — fix the sendable warnings and decide what should be main-actor isolated versus moved onto an actor',
       transcript: 'User: modernizing the ios app for swift 6.',
-      openFiles: ['Sources/App/SyncEngine.swift']
     },
     // The only Swift skill in the catalog — a unique-match probe.
     expected: ['write-swift'],
@@ -164,7 +156,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'the notification toast just pops into existence — build a proper enter and exit animation for it and pick the right curve and duration',
       transcript: 'User: polishing the toast component today.',
-      openFiles: ['components/toast.tsx']
     },
     // The build-verb counterpart of animation-naming; auditors/reviewers are traps.
     expected: ['animate'],
@@ -176,7 +167,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'our custom combobox is broken for keyboard users and voiceover announces nothing — fix the focus management and aria wiring',
       transcript: 'User: got an accessibility bug report from a customer.',
-      openFiles: ['components/ui/combobox.tsx']
     },
     // Fix task, not a review — web-design-guidelines ("check accessibility") is the trap.
     expected: ['better-accessibility'],
@@ -188,7 +178,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'the Button component has grown a dozen boolean props — refactor it into a composable compound-component api instead',
       transcript: 'User: cleaning up the design system components.',
-      openFiles: ['components/ui/button.tsx']
     },
     // codebase-design (module interfaces) and react-best-practices are close siblings.
     expected: ['vercel-composition-patterns'],
@@ -200,7 +189,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'the feed flatlist in our expo app drops frames on scroll — optimize the list rendering and memoization',
       transcript: 'User: react native perf pass before the release.',
-      openFiles: ['app/feed.tsx']
     },
     // Near-twin trap: vercel-react-best-practices is the WEB react perf skill;
     // diagnosing-bugs ("slow") is the wrong-verb trap for a prescriptive optimize ask.
@@ -224,7 +212,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'audit the dashboard palette for wcag contrast in dark mode and fix the failing color tokens',
       transcript: 'User: dark mode ships next week.',
-      openFiles: ['styles/tokens.css']
     },
     // Compound query, two-skill truth — probes whether the secondary intent lands
     // in the 0.85–0.90 band on real skills like it did on synthetic ones.
@@ -239,7 +226,6 @@ export const SESSIONS: LabeledSession[] = [
       latestQuery:
         'give the signup screen a holistic review across the board — layout, copy, colors, type, accessibility — and hand me one ranked list of what to fix',
       transcript: 'User: last design pass before launch.',
-      openFiles: ['app/signup/page.tsx']
     },
     // The suite-hierarchy probe: better-interface describes itself as the orchestrator
     // over the better-* leaves ("holistic review rather than a single domain"). Do the

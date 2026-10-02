@@ -74,8 +74,6 @@ export async function main(argv: string[]): Promise<void> {
     out = await runRoute({
       query,
       transcript: opts.transcript,
-      openFiles: list('open-files'),
-      projectRules: opts.rules,
       configPath: opts.config,
       skillsDir: opts['skills-dir'],
       judge: opts.judge,

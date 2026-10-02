@@ -35,8 +35,6 @@ function toState(session: SessionState): Record<string, JsonValue> {
   // must read as background — flat co-equal keys let it drown out a topic switch.
   const state: Record<string, JsonValue> = { currentRequest: session.latestQuery }
   if (session.transcript) state.earlierConversationBackground = session.transcript
-  if (session.openFiles?.length) state.openFiles = session.openFiles
-  if (session.projectRules) state.projectRules = session.projectRules
   return state
 }
 

@@ -16,8 +16,6 @@ import type { RouteResult, SessionState } from '../skills/types.js'
 export interface RunRouteInput {
   query: string
   transcript?: string
-  openFiles?: string[]
-  projectRules?: string
   /** Explicit config file path; otherwise .skillrouter.json in cwd, else home. */
   configPath?: string
   skillsDir?: string
@@ -139,9 +137,7 @@ export async function runRoute(input: RunRouteInput): Promise<RunRouteOutput> {
 
   const session: SessionState = {
     latestQuery: input.query,
-    transcript: input.transcript ?? '',
-    openFiles: input.openFiles,
-    projectRules: input.projectRules
+    transcript: input.transcript ?? ''
   }
 
   // Jev by default: the mock is keyword overlap, fit only for testing the plumbing, so

@@ -3829,9 +3829,7 @@ function sessionTermWeights(session) {
     }
   };
   add(session.latestQuery, WEIGHTS.latestQuery);
-  add(session.openFiles?.join(" "), WEIGHTS.openFiles);
   add(session.transcript, WEIGHTS.transcript);
-  add(session.projectRules, WEIGHTS.projectRules);
   return weights;
 }
 function cosine(termWeights, queryNorm, skill) {
@@ -3874,7 +3872,7 @@ var init_mockJudge = __esm({
       baseLatencyMs: 220,
       perNoulMs: 4
     };
-    WEIGHTS = { latestQuery: 3, openFiles: 2, transcript: 1, projectRules: 1 };
+    WEIGHTS = { latestQuery: 3, transcript: 1 };
   }
 });
 
@@ -4489,8 +4487,6 @@ __export(jevJudge_exports, {
 function toState(session) {
   const state = { currentRequest: session.latestQuery };
   if (session.transcript) state.earlierConversationBackground = session.transcript;
-  if (session.openFiles?.length) state.openFiles = session.openFiles;
-  if (session.projectRules) state.projectRules = session.projectRules;
   return state;
 }
 function skillNoul(skill) {
@@ -4604,9 +4600,7 @@ async function runRoute(input) {
   }
   const session = {
     latestQuery: input.query,
-    transcript: input.transcript ?? "",
-    openFiles: input.openFiles,
-    projectRules: input.projectRules
+    transcript: input.transcript ?? ""
   };
   const judgeName = input.judge ?? (cfg.judge === "jev" || cfg.judge === "mock" ? cfg.judge : "jev");
   const judge = await createJudgeByName(judgeName);
@@ -4688,8 +4682,6 @@ async function main(argv) {
     out = await runRoute({
       query,
       transcript: opts.transcript,
-      openFiles: list("open-files"),
-      projectRules: opts.rules,
       configPath: opts.config,
       skillsDir: opts["skills-dir"],
       judge: opts.judge,

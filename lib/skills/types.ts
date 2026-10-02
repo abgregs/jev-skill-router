@@ -24,10 +24,6 @@ export interface SessionState {
   transcript: string
   /** The user's latest message — the strongest routing signal. */
   latestQuery: string
-  /** Files currently open in the editor, if known. */
-  openFiles?: string[]
-  /** Relevant CLAUDE.md / AGENTS.md rules in scope for this session. */
-  projectRules?: string
 }
 
 /** One skill's routing verdict. */

@@ -26,9 +26,7 @@ const session: SessionState = {
     'the payments service is throwing 500s at checkout right after the last deploy — ' +
     'we need to roll it back and pull up the dashboard to see the error rate',
   transcript:
-    'User: on-call for payments tonight. Assistant: acknowledged, watching error budget.',
-  openFiles: ['services/payments/checkout_handler.go'],
-  projectRules: 'Prefer rollback over hotfix during an active incident.'
+    'User: on-call for payments tonight. Assistant: acknowledged, watching error budget.'
 }
 
 const result = await route(session, catalog, createMockJudge())
