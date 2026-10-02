@@ -1,7 +1,7 @@
 {
   "name": "jev",
   "description": "Jev-powered tooling for coding agents: semantic skill routing as a per-turn control plane.",
-  "owner": { "name": "Austin", "email": "18180452+abgregs@users.noreply.github.com" },
+  "owner": { "name": "Austin Gregersen" },
   "plugins": [
     {
       "name": "jev-skill-router",

@@ -2,7 +2,7 @@
   "name": "jev-skill-router",
   "version": "0.1.0",
   "description": "Per-turn semantic skill routing: a Jev-powered control plane that decides which skills to invoke each turn, before the model starts thinking.",
-  "author": { "name": "Austin", "email": "18180452+abgregs@users.noreply.github.com" },
+  "author": { "name": "Austin Gregersen" },
   "repository": "https://github.com/abgregs/jev-skill-router",
   "license": "MIT",
   "hooks": "./hooks/hooks.json",
