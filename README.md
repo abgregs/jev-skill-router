@@ -64,10 +64,10 @@ hides it until you run `npm link` again. `npm rm -g jev-skill-router` removes it
 
 ## Results — the released router, recorded runs only
 
-These are the only numbers this repo claims for routing quality: the 22 real-Jev runs in
-`fixtures/recordings/` (real catalog captured 2026-09-28, synthetic 2026-09-22), replayed
-through the shipped policy (threshold 0.85, suggest floor 0.80, cap 6). The judge prompt and
-policy code are unchanged since both captures; `npm run demo:data` reproduces every row.
+These are the only numbers this repo claims for routing quality: the 17 real-catalog runs in
+`fixtures/recordings/` (captured 2026-09-28), replayed through the shipped policy (threshold
+0.85, suggest floor 0.80, cap 6). The judge prompt and policy code are unchanged since
+capture; `npm run demo:data` reproduces every row.
 
 | Real catalog (51 skills), 17 fixtures | Result |
 |---|---|
@@ -75,16 +75,17 @@ policy code are unchanged since both captures; `npm run demo:data` reproduces ev
 | User-only skill (`disable-model-invocation`), 1 fixture: left to the user | **1 / 1** — nothing invoked |
 | Negative controls (5): asks for skills the catalog doesn't have | **5 / 5** — no stand-in invoked; 4 invoked nothing, `maps-latency` only its one needed in-catalog skill (`diagnosing-bugs`) |
 
-| Synthetic catalog (1,064 skills), 5 fixtures | Result |
-|---|---|
-| Needed skills invoked | **8 / 8** |
-| Curated look-alike decoys invoked | **0 / 17** |
+**Synthetic catalog (1,064 skills, 5 fixtures, captured 2026-09-22): the scale story only.**
+Every skill judged in 479–545ms across 5 parallel shards. The catalog is generated from
+templates: near-duplicate skills that differ by service name, some with deliberately
+overlapping descriptions. That makes it a stress test for speed and sharding, not a fair
+accuracy test, so its picks are illustrative and not counted above. Two of its labels were
+corrected on 2026-09-29, after capture, on the first side-by-side read of query and
+descriptions (see `fixtures/sessions.ts`).
 
 - **Ground truth is ours.** One needed skill per part of the ask, labeled from the query
   and skill descriptions, never from a run's output. Related skills that also clear the bar
-  are welcome and ungraded: the 11 task fixtures invoked 26 skills for 13 needed ones, and
-  two uncurated synthetic near-siblings co-invoked (`rollback-release-checkout`,
-  `trace-latency-regression-tracing`).
+  are welcome and ungraded: the 11 task fixtures invoked 26 skills for 13 needed ones.
 - **Small and single-turn.** One capture per fixture. Read it as evidence, not a benchmark.
 - **These grade the verdict, not the session.** Whether the model then loads and uses the
   skills was studied only in live sessions during development.
@@ -470,8 +471,8 @@ and captures the full probability maps to `fixtures/recordings/*.json`. Two cata
   precision/recall per fixture, and negative controls (out-of-domain queries where the only
   correct outcome is abstention — reported as abstention, never as P/R/F1).
 - **synthetic** (1,064 skills, an org-scale catalog of confusable near-siblings) — the
-  scale story: 5 parallel shards, ~0.5s wall-clock, correct picks among 20+ same-family
-  look-alikes.
+  scale story: 5 parallel shards, ~0.5s wall-clock. Its picks are illustrative, not an
+  accuracy claim (see Results).
 
 Cost is real (one Noul per judged skill): synthetic runs are ~1,000 Nouls *per fixture*, so
 the script projects spend up front and refuses to exceed `--max-nouls` (default `2000`) unless
