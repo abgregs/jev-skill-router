@@ -46,7 +46,7 @@ CLI install, the key lookup order, uninstalling, and local development:
 
 | | Claude Code | Jev Skill Router |
 |---|---|---|
-| **CONTROL** | Absolute switches: on/off, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
+| **CONTROL** | Absolute switches: `disable-model-invocation` and `user-invocable` flags, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
 | **RELEVANCE** | None of the switches look at your prompt; the model decides alone. | Jev measures each skill's description against the prompt, so the query decides. |
 | **VISIBILITY** | Nothing records why a skill fired, and a skill that should have fired leaves no trace. | Every skill gets a score. `jev-skill-router route` shows them, so you can see why a skill missed. |
 | **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict, and a slash command always gets through. |
@@ -54,14 +54,9 @@ CLI install, the key lookup order, uninstalling, and local development:
 
 ## How it works
 
-```mermaid
-flowchart LR
-  A[Your prompt] --> B["Jev scores every skill<br/>in parallel"]
-  B --> C["Policy (plain code)<br/>invoke ≥ 0.85 · suggest ≥ 0.80"]
-  C --> D["Verdict in context<br/>Invoke: … / Also relevant: …"]
-  D --> E[Model works the turn]
-  E --> F{"Gate on<br/>Skill calls"}
-```
+Before the model sees your prompt, Jev scores every skill against it. Plain-code thresholds
+turn those scores into a verdict that is added to the model's context, and a gate holds the
+model to it.
 
 - **What Jev reads:** your prompt, with the last ~2,000 characters of conversation as
   background, against each skill's name and description. Not `CLAUDE.md`, open files, or
