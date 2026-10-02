@@ -549,11 +549,6 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   .btn-replay:hover { background: var(--color-text-secondary); border-color: var(--color-text-secondary); }
 }
 .btn-replay:active { transform: scale(0.97); }
-.btn-replay-inline {
-  padding: 8px 12px;
-  margin-left: auto;
-  font-size: 11px;
-}
 
 /* square knob on a hairline track — paper and square edges, no pill chrome */
 .scrub {

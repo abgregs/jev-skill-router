@@ -536,18 +536,6 @@ function playChart(wrap, run, { paused = false, keep = false } = {}) {
 }
 
 
-/** The replay control lives in the section body, at the end of the tabs row. */
-function addReplay(rowEl, onReplay) {
-  if (REDUCED) return
-  rowEl.querySelector('.btn-replay-inline')?.remove() // one per row, rebuilt per fixture
-  const b = document.createElement('button')
-  b.type = 'button'
-  b.className = 'btn-replay btn-replay-inline'
-  b.textContent = 'Replay'
-  b.addEventListener('click', onReplay)
-  rowEl.append(b)
-}
-
 /* ---- Fig. 0: the mechanism ---------------------------------------------------- */
 
 const MECH = { anims: [], total: 1, latency: 0, raf: 0, seekRaf: 0, seekTo: 0 }
@@ -852,7 +840,6 @@ function renderFig3(animate = false) {
     },
     'scale-tablewrap'
   )
-  addReplay($('scale-tabrow'), () => playChart($('scale-tablewrap'), f.run))
   $('fig3-query').textContent = f.query
   renderFixtureType($('fig3-type'), f, f.run)
   renderRun($('scale-table'), f, { limit: 12 })
