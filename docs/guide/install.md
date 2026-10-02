@@ -14,7 +14,14 @@ cost nothing (see [configuration](configuration.md)).
 
 The repo is a Claude Code plugin and its own marketplace. The hooks ship as committed,
 dependency-free bundles (`dist/`), so there is no `settings.json` editing and no path to go
-stale:
+stale. To install, run:
+
+```
+claude /plugin marketplace add abgregs/jev-skill-router
+claude /plugin install jev-skill-router@jev
+```
+
+In the Claude Code desktop app or an already open Claude Code session, run:
 
 ```
 /plugin marketplace add abgregs/jev-skill-router

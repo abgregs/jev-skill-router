@@ -18,6 +18,15 @@ over a real 51-skill catalog, replayed in the browser. No key needed.
 > [!NOTE]
 > **Requires** Claude Code, Node 20.12+ on your `PATH`, and a TypeSafe API key.
 
+To install, run:
+
+```
+claude /plugin marketplace add abgregs/jev-skill-router
+claude /plugin install jev-skill-router@jev
+```
+
+In the Claude Code desktop app or an already open Claude Code session, run:
+
 ```
 /plugin marketplace add abgregs/jev-skill-router
 /plugin install jev-skill-router@jev
