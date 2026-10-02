@@ -4,21 +4,24 @@
 scores every skill against every prompt, turning the model's hidden "should I use this
 skill?" judgment call into probabilities that code can act on.
 
-[Install](#install) · [How it works](#how-it-works) · [Everyday use](#everyday-use) ·
+[Demo](https://abgregs.github.io/jev-skill-router/) · [Install](#install) ·
+[How it works](#how-it-works) · [Everyday use](#everyday-use) ·
 [Configuration](#configuration) · [Results](#results) · [Docs](docs/README.md)
+
+[![The recorded demo: one prompt, run as a plain coding agent and with jev-skill-router](docs/assets/demo.png)](https://abgregs.github.io/jev-skill-router/)
+
+**[Open the recorded demo →](https://abgregs.github.io/jev-skill-router/)** Real Jev runs
+over a real 51-skill catalog, replayed in the browser. No key needed.
 
 ## Why
 
-- **Stock controls are blunt.** In stock Claude Code the model picks skills, and your
-  controls are absolute: on/off, allow/deny, path globs. None of them look at what you just
-  asked.
-- **Stock selection is invisible.** Nothing records why a skill fired, and a skill that should
-  have fired leaves no trace.
-- **It doesn't scale.** Nobody can track which of 1,000 skills fits which task, or hand-tune
-  switches for each one.
-- **The router makes the description the control.** Jev measures each skill's description
-  against every prompt, so the query decides. You set the thresholds, a gate enforces the
-  verdict, and misses show up as scores.
+| | Claude Code | Jev Skill Router |
+|---|---|---|
+| **CONTROL** | Absolute switches: on/off, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
+| **RELEVANCE** | None of the switches look at your prompt; the model decides alone. | Jev measures each skill's description against the prompt, so the query decides. |
+| **VISIBILITY** | Nothing records why a skill fired, and a skill that should have fired leaves no trace. | Every skill gets a score. `jev-skill-router route` shows them, so you can see why a skill missed. |
+| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict, and a slash command always gets through. |
+| **SCALE** | The lack of control persists and grows more unwieldy with every skill you add. With many skills, Claude Code even trims descriptions to fit its context budget. | Write clear descriptions instead of managing switches. Every skill is judged in parallel, at any catalog size. |
 
 ## Install
 
