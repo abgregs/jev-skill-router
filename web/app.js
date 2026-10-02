@@ -80,30 +80,37 @@ function fillTranscript(pre, text) {
   )
 }
 
-/* The stock rotor: same prompt, four models, recorded stock outcomes. fable's hit
-   is the manual arm A session; sonnet's silent no-load is the bench's 0-of-3;
-   haiku's and opus's no-loads are the 2026-09-25 probes (bench/results/README.md).
-   Only the strongest model reached for a skill at all. */
+/* The stock rotor: same prompt, four models, router off. Each entry is the opening
+   of the 2026-10-01 stock session from bench/cross-model-probe.sh (logged in
+   bench/results/README.md). fable, sonnet, and opus reached for better-accessibility
+   (opus after exploring first); haiku never loaded a skill. None loaded
+   diagnosing-bugs. */
 const STOCK_SCENARIOS = [
   {
     model: 'fable',
     out:
       '● Skill(better-accessibility)\n  ⎿  Launching skill: better-accessibility\n\n' +
-      "● I'll rebuild the focus order and ARIA wiring per the accessibility skill."
+      '● Bash(git ls-files | head -200 …)'
   },
   {
     model: 'sonnet',
-    out: "● I'll fix the focus management and ARIA wiring. Let me look at the component.\n\n● Read(components/ui/combobox.tsx)"
+    out:
+      '● Skill(better-accessibility)\n  ⎿  Launching skill: better-accessibility\n\n' +
+      '● Bash(git ls-files | head -100 …)'
+  },
+  {
+    model: 'opus',
+    out:
+      '● Bash(git ls-files | head -100 …)\n\n' +
+      '● Skill(better-accessibility)\n  ⎿  Launching skill: better-accessibility'
   },
   {
     model: 'haiku',
     out:
-      "● I'll help you fix the combobox's keyboard navigation and accessibility. Let me first explore the project structure.\n\n" +
-      '● Bash(find . -name "*.tsx" | grep -i combobox)'
-  },
-  {
-    model: 'opus',
-    out: "● Bash(find . -type f -not -path '*/node_modules/*' | head -50)\n\n● Bash(ls -la)\n\n● Read(components/ui/combobox.tsx)"
+      "● I'll help you fix the combobox accessibility issues. Let me start by exploring the codebase to find the combobox component.\n\n" +
+      '● Bash(find . -type f \\( -name "*.tsx" … \\))\n\n' +
+      '● Read(components/ui/combobox.tsx)\n\n' +
+      '● Edit(components/ui/combobox.tsx)'
   }
 ]
 const ROTOR_DWELL_MS = 6000

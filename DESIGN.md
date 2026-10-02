@@ -388,7 +388,7 @@ is stated as the measured magnitude (±0.01 run to run — confident calls hold,
 borderline scores can drift across a cut), never as the bare word "probabilistic",
 which over-implies LLM-grade wobble. The left
 (stock) panel is a slow ROTOR over model scenarios — same prompt, four RECORDED
-stock outcomes (fable's native hit; sonnet, haiku, and opus each going in blind),
+stock outcomes (2026-10-01: fable, sonnet, and opus find the skill; haiku goes in blind),
 never invented transcripts, model name in the label ("· fable"), square dots as
 the position cue, ~6s dwell, 120/180ms opacity fade on the interface clock, paused
 on hover or focus-within, static under reduced motion. The right (routed) panel is
