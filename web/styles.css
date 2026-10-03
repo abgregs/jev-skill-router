@@ -124,8 +124,18 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
 
 /* no rule after the opener: a plain vertical gap hands off to the nav */
 .masthead { margin-bottom: 40px; }
+/* the cover's title block: series on the left, the source field on the right edge,
+   set like a figure head's recorded stamp (caps ghost label + mono literal) */
+.masthead-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 16px;
+}
 .masthead-series {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -141,6 +151,20 @@ a { color: var(--color-annotation); text-underline-offset: 3px; }
   letter-spacing: 0.02em;
   text-transform: uppercase;
   text-wrap: balance;
+}
+.masthead-source { margin: 0; }
+.masthead-source a {
+  font-size: 12px;
+  /* inline padding grows the hit area toward 44px without moving the row */
+  padding-block: 12px;
+}
+.masthead-source .notation { font-size: inherit; } /* 12px, the stamp date's size */
+/* GitHub's mark stays in its own black (the page's ink), never recolored to link blue;
+   margin, not a space, so the underline runs under the repo name only */
+.gh-mark {
+  margin-right: 6px;
+  vertical-align: -2px;
+  fill: var(--color-text-primary);
 }
 .notation { font-family: var(--mono); font-size: 0.92em; white-space: nowrap; }
 
