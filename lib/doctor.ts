@@ -67,6 +67,8 @@ export interface Suite {
 export interface Composition {
   catalogSize: number
   excluded: string[]
+  /** User-only skills (`disable-model-invocation: true`) — never routed, by design. */
+  userOnly: string[]
   suites: Suite[]
   standalone: number
   medianKeywords: number
@@ -133,13 +135,14 @@ export function exemptPairs(skills: Skill[], suites: Suite[]): Set<string> {
   return exempt
 }
 
-export function composition(skills: Skill[], excluded: string[]): Composition {
+export function composition(skills: Skill[], excluded: string[], userOnly: string[] = []): Composition {
   const suites = detectSuites(skills)
   const inSuite = new Set(suites.flatMap((s) => s.members))
   const counts = skills.map((s) => s.keywords.length).sort((a, b) => a - b)
   return {
     catalogSize: skills.length,
     excluded,
+    userOnly,
     suites,
     standalone: skills.length - inSuite.size,
     medianKeywords: counts[Math.floor(counts.length / 2)] ?? 0
@@ -160,6 +163,7 @@ export function staticFindings(
   const findings: Finding[] = []
 
   for (const u of unroutable) {
+    if (u.reason === 'user-only') continue // skipped by design, not a fault
     findings.push({
       kind: 'unroutable',
       skills: [u.id],
@@ -174,12 +178,23 @@ export function staticFindings(
     })
   }
 
-  const known = new Set([...skills.map((s) => s.id), ...routable, ...unroutable.map((u) => u.id)])
+  const live = new Set([...skills.map((s) => s.id), ...routable])
+  const userOnly = new Set(unroutable.filter((u) => u.reason === 'user-only').map((u) => u.id))
+  const known = new Set([...live, ...unroutable.map((u) => u.id)])
   for (const [key, entries] of [
     ['alwaysAllow', config.alwaysAllow],
     ['exclude', config.exclude]
   ] as const) {
     for (const entry of entries) {
+      if (!live.has(entry) && userOnly.has(entry)) {
+        findings.push({
+          kind: 'stale-config',
+          skills: [entry],
+          evidence: `"${entry}" in ${key} is a user-only skill (disable-model-invocation: true) — the router never judges it, so the entry has no effect`,
+          action: 'remove the entry from .skillrouter.json'
+        })
+        continue
+      }
       if (known.has(entry)) continue
       findings.push({
         kind: 'stale-config',

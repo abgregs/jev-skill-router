@@ -3625,7 +3625,7 @@ function readSkillDir(dir, scope, idPrefix = "") {
     const name = typeof data.name === "string" ? data.name : entry;
     const description = typeof data.description === "string" ? data.description.trim() : "";
     if (!description) continue;
-    if (data["disable-model-invocation"] === true) continue;
+    if (isUserOnly(data)) continue;
     skills.push({
       id: `${idPrefix}${entry}`,
       name,
@@ -3662,7 +3662,8 @@ function scanUnroutable(dir) {
     }
     const { data } = (0, import_gray_matter.default)(raw);
     const description = typeof data.description === "string" ? data.description.trim() : "";
-    if (!description) unroutable.push({ id: entry, source: skillPath, reason: "no-description" });
+    if (isUserOnly(data)) unroutable.push({ id: entry, source: skillPath, reason: "user-only" });
+    else if (!description) unroutable.push({ id: entry, source: skillPath, reason: "no-description" });
   }
   return unroutable;
 }
@@ -3683,7 +3684,7 @@ function loadSkills(roots = defaultSkillRoots()) {
   }
   return [...byId.values()];
 }
-var import_gray_matter, SYNCED_FOLDER, SYNCED_NAMESPACE, STOPWORDS;
+var import_gray_matter, SYNCED_FOLDER, SYNCED_NAMESPACE, STOPWORDS, isUserOnly;
 var init_loadSkills = __esm({
   "lib/skills/loadSkills.ts"() {
     "use strict";
@@ -3733,6 +3734,7 @@ var init_loadSkills = __esm({
       "over",
       "any"
     ]);
+    isUserOnly = (data) => data["disable-model-invocation"] === true;
   }
 });
 
@@ -4790,13 +4792,14 @@ function exemptPairs(skills, suites) {
   }
   return exempt;
 }
-function composition(skills, excluded) {
+function composition(skills, excluded, userOnly = []) {
   const suites = detectSuites(skills);
   const inSuite = new Set(suites.flatMap((s) => s.members));
   const counts = skills.map((s) => s.keywords.length).sort((a, b) => a - b);
   return {
     catalogSize: skills.length,
     excluded,
+    userOnly,
     suites,
     standalone: skills.length - inSuite.size,
     medianKeywords: counts[Math.floor(counts.length / 2)] ?? 0
@@ -4805,6 +4808,7 @@ function composition(skills, excluded) {
 function staticFindings(skills, unroutable, config, routable = []) {
   const findings = [];
   for (const u of unroutable) {
+    if (u.reason === "user-only") continue;
     findings.push({
       kind: "unroutable",
       skills: [u.id],
@@ -4812,12 +4816,23 @@ function staticFindings(skills, unroutable, config, routable = []) {
       action: u.reason === "no-skill-md" ? "add a SKILL.md with a description, or remove the folder if it is not a skill" : "add a description \u2014 the router skips skills without one (Claude Code falls back to the first line of the body)"
     });
   }
-  const known = /* @__PURE__ */ new Set([...skills.map((s) => s.id), ...routable, ...unroutable.map((u) => u.id)]);
+  const live = /* @__PURE__ */ new Set([...skills.map((s) => s.id), ...routable]);
+  const userOnly = new Set(unroutable.filter((u) => u.reason === "user-only").map((u) => u.id));
+  const known = /* @__PURE__ */ new Set([...live, ...unroutable.map((u) => u.id)]);
   for (const [key, entries] of [
     ["alwaysAllow", config.alwaysAllow],
     ["exclude", config.exclude]
   ]) {
     for (const entry of entries) {
+      if (!live.has(entry) && userOnly.has(entry)) {
+        findings.push({
+          kind: "stale-config",
+          skills: [entry],
+          evidence: `"${entry}" in ${key} is a user-only skill (disable-model-invocation: true) \u2014 the router never judges it, so the entry has no effect`,
+          action: "remove the entry from .skillrouter.json"
+        });
+        continue;
+      }
       if (known.has(entry)) continue;
       findings.push({
         kind: "stale-config",
@@ -5220,7 +5235,8 @@ async function main2(argv) {
     }
     interpret(outcomes);
   }
-  const comp = composition(skills, excluded);
+  const userOnly = unroutable.filter((u) => u.reason === "user-only").map((u) => u.id);
+  const comp = composition(skills, excluded, userOnly);
   const ordered = orderFindings(findings);
   if (bools.has("json")) {
     console.log(
@@ -5239,12 +5255,43 @@ async function main2(argv) {
     );
     process.exit(0);
   }
-  const suiteSummary = comp.suites.map((s) => `${s.prefix}-* (${s.members.length})`).join(" \xB7 ");
   console.log(`
-route doctor \u2014 ${skillsDir}`);
-  console.log(
-    `Catalog: ${comp.catalogSize} skills` + (excluded.length ? ` (+${excluded.length} excluded: ${excluded.join(", ")})` : "") + ` \xB7 ${comp.standalone} standalone` + (suiteSummary ? ` \xB7 suites: ${suiteSummary}` : "") + ` \xB7 median routing surface ${comp.medianKeywords} keywords`
-  );
+route doctor \u2014 ${skillsDir}
+`);
+  const rows = [
+    {
+      label: "routed",
+      count: comp.catalogSize,
+      items: [`${comp.standalone} standalone`, ...comp.suites.map((s) => `${s.prefix}-* (${s.members.length})`)],
+      sep: " \xB7 "
+    },
+    { label: "excluded", count: excluded.length, items: excluded, sep: ", " },
+    { label: "user-only", count: userOnly.length, items: userOnly, sep: ", " },
+    { label: "unroutable", count: unroutable.length - userOnly.length, items: ["see findings"], sep: "" }
+  ].filter((r) => r.label === "routed" || r.count > 0);
+  const total = rows.reduce((n, r) => n + r.count, 0);
+  const numW = String(total).length;
+  const indent = 2 + 12 + numW + 3;
+  const width = Math.max(60, process.stdout.columns || 100);
+  const wrap2 = (items, sep) => {
+    const lines = [""];
+    items.forEach((item, i) => {
+      const piece = item + (i < items.length - 1 ? sep.trimEnd() : "");
+      const last = lines.length - 1;
+      if (lines[last] && indent + lines[last].length + 1 + piece.length > width) lines.push(piece);
+      else lines[last] += (lines[last] ? " " : "") + piece;
+    });
+    return lines.join(`
+${" ".repeat(indent)}`);
+  };
+  console.log("CATALOG");
+  for (const r of rows) {
+    console.log(`  ${r.label.padEnd(12)}${String(r.count).padStart(numW)}   ${wrap2(r.items, r.sep)}`);
+  }
+  console.log(`  ${"\u2500".repeat(12 + numW)}`);
+  console.log(`  ${"total".padEnd(12)}${String(total).padStart(numW)}`);
+  console.log(`
+Median routing surface: ${comp.medianKeywords} keywords per routed skill`);
   console.log(
     probing ? `Overlap measured by routing probes: judge=${probeJudge}${replayPath ? " (replayed)" : ""}, t=${threshold}` + (probeJudge === "mock" ? "  (mock sees only lexical confusion; the Jev judge finds semantic overlap)" : "") : skipForKey ? "Probes skipped: no TYPESAFE_API_KEY, so static findings only. Set the key for overlap probes, or pass --judge mock for free keyword-only ones." : "Probes disabled (--no-probe): static findings only"
   );

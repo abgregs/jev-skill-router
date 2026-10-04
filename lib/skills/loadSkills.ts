@@ -74,6 +74,10 @@ export function deriveKeywords(name: string, description: string): string[] {
   return [...new Set(tokenize(`${name} ${description}`))]
 }
 
+// The model is forbidden to invoke these (user-only skills), so a routing verdict
+// naming one is unactionable — keep them out of the judged catalog entirely.
+const isUserOnly = (data: Record<string, unknown>) => data['disable-model-invocation'] === true
+
 function readSkillDir(dir: string, scope: SkillRoot['scope'], idPrefix = ''): Skill[] {
   let entries: string[]
   try {
@@ -97,9 +101,7 @@ function readSkillDir(dir: string, scope: SkillRoot['scope'], idPrefix = ''): Sk
     const name = typeof data.name === 'string' ? data.name : entry
     const description = typeof data.description === 'string' ? data.description.trim() : ''
     if (!description) continue // a skill with no description can't be routed on
-    // The model is forbidden to invoke these (user-only skills), so a routing verdict
-    // naming one is unactionable — keep them out of the judged catalog entirely.
-    if (data['disable-model-invocation'] === true) continue
+    if (isUserOnly(data)) continue
 
     skills.push({
       id: `${idPrefix}${entry}`,
@@ -117,14 +119,15 @@ function readSkillDir(dir: string, scope: SkillRoot['scope'], idPrefix = ''): Sk
 export interface UnroutableEntry {
   id: string
   source: string
-  reason: 'no-skill-md' | 'no-description'
+  reason: 'no-skill-md' | 'no-description' | 'user-only'
 }
 
 /**
- * Scan a skill root for folders `loadSkills` silently skips: no SKILL.md, or a
- * SKILL.md whose frontmatter has no description. The loader drops these because
- * they cannot be routed on; the catalog doctor surfaces them because that's a
- * fault worth fixing, not a fact to hide.
+ * Scan a skill root for folders `loadSkills` silently skips: no SKILL.md, a
+ * SKILL.md whose frontmatter has no description, or a user-only skill
+ * (`disable-model-invocation: true`). The loader drops these because they cannot
+ * be routed on; the catalog doctor surfaces them — the first two as faults worth
+ * fixing, user-only skills as a count, since skipping them is by design.
  */
 export function scanUnroutable(dir: string): UnroutableEntry[] {
   let entries: string[]
@@ -152,7 +155,9 @@ export function scanUnroutable(dir: string): UnroutableEntry[] {
     }
     const { data } = matter(raw)
     const description = typeof data.description === 'string' ? data.description.trim() : ''
-    if (!description) unroutable.push({ id: entry, source: skillPath, reason: 'no-description' })
+    // User-only first: adding a description would not make one routable.
+    if (isUserOnly(data)) unroutable.push({ id: entry, source: skillPath, reason: 'user-only' })
+    else if (!description) unroutable.push({ id: entry, source: skillPath, reason: 'no-description' })
   }
   return unroutable
 }

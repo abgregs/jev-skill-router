@@ -4309,6 +4309,7 @@ function tokenize(text) {
 function deriveKeywords(name, description) {
   return [...new Set(tokenize(`${name} ${description}`))];
 }
+var isUserOnly = (data) => data["disable-model-invocation"] === true;
 function readSkillDir(dir, scope, idPrefix = "") {
   let entries;
   try {
@@ -4330,7 +4331,7 @@ function readSkillDir(dir, scope, idPrefix = "") {
     const name = typeof data.name === "string" ? data.name : entry;
     const description = typeof data.description === "string" ? data.description.trim() : "";
     if (!description) continue;
-    if (data["disable-model-invocation"] === true) continue;
+    if (isUserOnly(data)) continue;
     skills.push({
       id: `${idPrefix}${entry}`,
       name,

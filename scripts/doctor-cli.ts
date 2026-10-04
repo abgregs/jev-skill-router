@@ -270,7 +270,8 @@ export async function main(argv: string[]): Promise<void> {
   }
 
   // ---- Report ----------------------------------------------------------------------
-  const comp = composition(skills, excluded)
+  const userOnly = unroutable.filter((u) => u.reason === 'user-only').map((u) => u.id)
+  const comp = composition(skills, excluded, userOnly)
   const ordered = orderFindings(findings)
 
   if (bools.has('json')) {
@@ -291,15 +292,41 @@ export async function main(argv: string[]): Promise<void> {
     process.exit(0)
   }
 
-  const suiteSummary = comp.suites.map((s) => `${s.prefix}-* (${s.members.length})`).join(' · ')
-  console.log(`\nroute doctor — ${skillsDir}`)
-  console.log(
-    `Catalog: ${comp.catalogSize} skills` +
-      (excluded.length ? ` (+${excluded.length} excluded: ${excluded.join(', ')})` : '') +
-      ` · ${comp.standalone} standalone` +
-      (suiteSummary ? ` · suites: ${suiteSummary}` : '') +
-      ` · median routing surface ${comp.medianKeywords} keywords`
-  )
+  console.log(`\nroute doctor — ${skillsDir}\n`)
+  // One row per catalog group, counts in one column summing to the total; a row's
+  // detail list wraps under its own column rather than running off the line.
+  const rows: { label: string; count: number; items: string[]; sep: string }[] = [
+    {
+      label: 'routed',
+      count: comp.catalogSize,
+      items: [`${comp.standalone} standalone`, ...comp.suites.map((s) => `${s.prefix}-* (${s.members.length})`)],
+      sep: ' · '
+    },
+    { label: 'excluded', count: excluded.length, items: excluded, sep: ', ' },
+    { label: 'user-only', count: userOnly.length, items: userOnly, sep: ', ' },
+    { label: 'unroutable', count: unroutable.length - userOnly.length, items: ['see findings'], sep: '' }
+  ].filter((r) => r.label === 'routed' || r.count > 0)
+  const total = rows.reduce((n, r) => n + r.count, 0)
+  const numW = String(total).length
+  const indent = 2 + 12 + numW + 3
+  const width = Math.max(60, process.stdout.columns || 100)
+  const wrap = (items: string[], sep: string): string => {
+    const lines = ['']
+    items.forEach((item, i) => {
+      const piece = item + (i < items.length - 1 ? sep.trimEnd() : '')
+      const last = lines.length - 1
+      if (lines[last] && indent + lines[last].length + 1 + piece.length > width) lines.push(piece)
+      else lines[last] += (lines[last] ? ' ' : '') + piece
+    })
+    return lines.join(`\n${' '.repeat(indent)}`)
+  }
+  console.log('CATALOG')
+  for (const r of rows) {
+    console.log(`  ${r.label.padEnd(12)}${String(r.count).padStart(numW)}   ${wrap(r.items, r.sep)}`)
+  }
+  console.log(`  ${'─'.repeat(12 + numW)}`)
+  console.log(`  ${'total'.padEnd(12)}${String(total).padStart(numW)}`)
+  console.log(`\nMedian routing surface: ${comp.medianKeywords} keywords per routed skill`)
   console.log(
     probing
       ? `Overlap measured by routing probes: judge=${probeJudge}${replayPath ? ' (replayed)' : ''}, t=${threshold}` +
