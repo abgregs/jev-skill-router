@@ -277,6 +277,16 @@ function makeRow(f, run, id, p, rank) {
 
   row.append(name, bar, prob, bandEl)
 
+  // A worked-example margin note: a skill the router left out that a separate recorded
+  // session still loaded, because an invoked skill named it. The band stays as scored.
+  const via = WORKED[f.id]?.loadedVia?.[id]
+  if (via) {
+    const note = document.createElement('span')
+    note.className = 'run-via'
+    note.textContent = `loaded through ${via} in a separate recorded session`
+    row.append(note)
+  }
+
   // Progressive disclosure: the description is the only context routing ever saw.
   const desc = document.createElement('p')
   desc.className = 'run-desc'
@@ -662,8 +672,13 @@ const WORKED = {
       'jumps to 0.97 here. Eight skills clear the bar and the cap of six binds: three tie ' +
       'at 0.86 for the last slot, so two of them drop to suggest beside two more at 0.83 ' +
       'and 0.81. Co-invocation beats a missed skill, and Doctor, the cap and ' +
-      'the thresholds keep it under control.',
+      'the thresholds keep it under control. better-ui stays below both bands, yet ' +
+      'better-interface still loads it, because the gate lets a loaded skill call the ' +
+      'skills it names.',
     flip: 'build-animation',
+    // recorded 2026-10-05, bench/holistic-probe.sh: better-interface loaded better-ui
+    loadedVia: { 'better-ui': 'better-interface' },
+    pull: ['better-ui'],
     flipLabel: '← compare the single-domain build task'
   }
 }
