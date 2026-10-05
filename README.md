@@ -49,7 +49,7 @@ CLI install, the key lookup order, uninstalling, and local development:
 | **CONTROL** | Absolute switches: `disable-model-invocation` and `user-invocable` flags, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
 | **RELEVANCE** | None of the switches look at your prompt; the model decides alone. | Jev measures each skill's description against the prompt, so the query decides. |
 | **VISIBILITY** | Nothing records why a skill fired, and a skill that should have fired leaves no trace. | Every skill gets a score. `jev-skill-router route` shows them, so you can see why a skill missed. |
-| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict, and a slash command always gets through. |
+| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict and the skills it loads call for, and a slash command always gets through. |
 | **SCALE** | The lack of control persists and grows more unwieldy with every skill you add. With many skills, Claude Code even trims descriptions to fit its context budget. | Write clear descriptions instead of managing switches. Every skill is judged in parallel, at any catalog size. |
 
 ## How it works

@@ -91,6 +91,8 @@ try {
   // finds no verdict and fails open, rather than enforcing one made for another prompt.
   const statePath = join(STATE_DIR, `turn-${sessionId}.json`)
   rmSync(statePath, { force: true })
+  // The gate's record of skills loaded this turn starts empty with each new verdict.
+  rmSync(join(STATE_DIR, `loaded-${sessionId}`), { recursive: true, force: true })
   if (!prompt) process.exit(0)
 
   // Respect the project's own .skillrouter.json (the hook's cwd is not guaranteed).
@@ -147,6 +149,9 @@ try {
       // rest pass.
       catalog,
       excluded: verdict.excluded,
+      // SKILL.md path per judged skill: the gate reads a loaded skill's file to allow
+      // the skills it names (an orchestrator calling its leaves).
+      sources: Object.fromEntries(verdict.result.scored.map((s) => [s.skill.id, s.skill.source])),
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,
@@ -161,7 +166,10 @@ try {
   // JSON output splits the two audiences: additionalContext reaches the model,
   // systemMessage is the user-visible signature that the router ran this turn.
   if (verdict.invoke.length > 0 || verdict.suggest.length > 0) {
-    const lines = ['Skill routing verdict for this turn (decided by the skill router — do not select skills yourself):']
+    const lines = [
+      'Skill routing verdict for this turn (decided by the skill router — do not select other skills yourself, ' +
+        'but when a skill you loaded tells you to use another skill, use it):'
+    ]
     if (verdict.invoke.length > 0) lines.push(`- Invoke: ${verdict.invoke.join(', ')}`)
     if (verdict.suggest.length > 0)
       lines.push(`- Also relevant, invoke only if the task turns out to need them: ${verdict.suggest.join(', ')}`)

@@ -2,7 +2,7 @@
 import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);
 
 // hooks/pre-tool-use-gate.ts
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -38,6 +38,27 @@ function deny(reason) {
   );
   process.exit(0);
 }
+function recordLoaded(loadedDir, id) {
+  try {
+    mkdirSync(loadedDir, { recursive: true });
+    writeFileSync(join(loadedDir, encodeURIComponent(id)), "");
+  } catch {
+  }
+}
+function namedByLoadedSkill(loadedDir, sources, names) {
+  if (!existsSync(loadedDir)) return false;
+  const n = names.map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const mention = new RegExp(`\`/?(${n})\`|(^|[\\s(])/(${n})(?![\\w-])|(^|[^\\w-])(${n})\\s+skill\\b`, "i");
+  for (const file of readdirSync(loadedDir)) {
+    const source = sources[decodeURIComponent(file)];
+    if (!source) continue;
+    try {
+      if (mention.test(readFileSync(source, "utf8"))) return true;
+    } catch {
+    }
+  }
+  return false;
+}
 function alwaysAllowList(projectCwd) {
   for (const p of [join(projectCwd, ".skillrouter.json"), join(homedir(), ".skillrouter.json")]) {
     if (!existsSync(p)) continue;
@@ -65,8 +86,11 @@ try {
   if (!judgedId) allow();
   const approved = /* @__PURE__ */ new Set([...state.invoke, ...state.suggest, ...alwaysAllowList(input.cwd ?? process.cwd())]);
   const baseName = skill.split(":").pop() ?? skill;
-  if (typedSlash(state.prompt, skill) || typedSlash(state.prompt, baseName)) allow();
-  if (approved.has(skill) || approved.has(judgedId)) allow();
+  const loadedDir = join(STATE_DIR, `loaded-${input.session_id ?? "unknown"}`);
+  if (typedSlash(state.prompt, skill) || typedSlash(state.prompt, baseName) || approved.has(skill) || approved.has(judgedId) || !(state.excluded ?? []).includes(judgedId) && namedByLoadedSkill(loadedDir, state.sources ?? {}, [.../* @__PURE__ */ new Set([skill, judgedId])])) {
+    recordLoaded(loadedDir, judgedId);
+    allow();
+  }
   deny(
     `Skill routing gate: "${skill}" is not on this turn's approved list. Invoke: [${state.invoke.join(", ") || "none"}]. Suggested: [${state.suggest.join(", ") || "none"}]. Use an approved skill, or ask the user if you believe this skill is needed.`
   );

@@ -6,7 +6,7 @@ Two hooks take skill selection off the main agent. Both install with the plugin
 | Hook | Role | What it does |
 |---|---|---|
 | `hooks/user-prompt-submit.ts` | Routing | Fires before the model sees the turn, routes the prompt and recent transcript, saves the verdict, and injects "Invoke: … / Also relevant: …" into context. |
-| `hooks/pre-tool-use-gate.ts` | Enforcement | Matched on the `Skill` tool. Denies routed skills that aren't on the turn's approved list, and skills the config excludes. |
+| `hooks/pre-tool-use-gate.ts` | Enforcement | Matched on the `Skill` tool. Denies routed skills that aren't on the turn's approved list or named by a skill loaded this turn, and skills the config excludes. |
 
 ## Routing hook
 
@@ -39,6 +39,11 @@ or tool output; the model still sees all of those as usual.
   `/name` of a namespaced skill.
 - Skills in the config's `alwaysAllow` list.
 - Any skill the router didn't judge.
+- Skills named in the SKILL.md of a skill already loaded this turn, so an orchestrator
+  (like `better-interface`) can call its leaves even when they scored below both bands.
+  Only a deliberate reference counts: `` `name` ``, `/name`, or "name skill". Excluded
+  skills stay denied. The gate can't tell "use `x`" from "`x` owns this, not me", so a
+  scope note also opens the door. That only permits the call; the model still decides.
 
 **Only a slash command counts as your say-so.** A skill you ask for in prose ("use the
 git-commit skill", "update our docs") can score higher because the router reads your prompt,

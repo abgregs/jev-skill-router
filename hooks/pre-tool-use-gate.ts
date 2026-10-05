@@ -15,11 +15,14 @@
 //     describing a skill in prose does not count
 //   - skills in the config's alwaysAllow list (.skillrouter.json in the project
 //     cwd or the home dir) — for process skills that standing instructions require.
+//   - skills named in the SKILL.md of a skill already loaded this turn, so an
+//     orchestrator can call its leaves. Every skill the gate lets through is recorded
+//     for the turn, so a chain of such calls works too. Excluded skills stay denied.
 //
 // Wiring (~/.claude/settings.json or project .claude/settings.json):
 //   "hooks": { "PreToolUse": [ { "matcher": "Skill", "hooks": [ { "type": "command", "command":
 //     "/ABS/jev-skill-router/node_modules/.bin/tsx /ABS/jev-skill-router/hooks/pre-tool-use-gate.ts" } ] } ] }
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { typedSlash } from '../lib/slash.js'
@@ -42,6 +45,35 @@ function deny(reason: string): never {
     })
   )
   process.exit(0)
+}
+
+/** One marker file per skill let through this turn; parallel gate runs never contend. */
+function recordLoaded(loadedDir: string, id: string): void {
+  try {
+    mkdirSync(loadedDir, { recursive: true })
+    writeFileSync(join(loadedDir, encodeURIComponent(id)), '')
+  } catch {
+    // an unrecorded load only narrows what later calls can chain from
+  }
+}
+
+/** Whether a skill already loaded this turn names `names` in its SKILL.md. */
+function namedByLoadedSkill(loadedDir: string, sources: Record<string, string>, names: string[]): boolean {
+  if (!existsSync(loadedDir)) return false
+  const n = names.map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+  // Only a deliberate reference counts: `name`, /name, or "name skill". A bare word
+  // would let skills called break, brief or sweep ride in on ordinary prose.
+  const mention = new RegExp(`\`/?(${n})\`|(^|[\\s(])/(${n})(?![\\w-])|(^|[^\\w-])(${n})\\s+skill\\b`, 'i')
+  for (const file of readdirSync(loadedDir)) {
+    const source = sources[decodeURIComponent(file)]
+    if (!source) continue
+    try {
+      if (mention.test(readFileSync(source, 'utf8'))) return true
+    } catch {
+      // unreadable SKILL.md vouches for nothing
+    }
+  }
+  return false
 }
 
 function alwaysAllowList(projectCwd: string): string[] {
@@ -73,6 +105,7 @@ try {
     ts: number
     catalog?: string[]
     excluded?: string[]
+    sources?: Record<string, string>
   }
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow()
 
@@ -90,8 +123,18 @@ try {
   // carry namespaced ids ("ns:name") while the user may type the base name ("/name"),
   // so match on both — explicit invocations must always pass.
   const baseName = skill.split(':').pop() ?? skill
-  if (typedSlash(state.prompt, skill) || typedSlash(state.prompt, baseName)) allow()
-  if (approved.has(skill) || approved.has(judgedId)) allow()
+  const loadedDir = join(STATE_DIR, `loaded-${input.session_id ?? 'unknown'}`)
+  if (
+    typedSlash(state.prompt, skill) ||
+    typedSlash(state.prompt, baseName) ||
+    approved.has(skill) ||
+    approved.has(judgedId) ||
+    (!(state.excluded ?? []).includes(judgedId) &&
+      namedByLoadedSkill(loadedDir, state.sources ?? {}, [...new Set([skill, judgedId])]))
+  ) {
+    recordLoaded(loadedDir, judgedId)
+    allow()
+  }
 
   deny(
     `Skill routing gate: "${skill}" is not on this turn's approved list. ` +

@@ -4627,6 +4627,7 @@ try {
   const projectCwd = input.cwd ?? process.cwd();
   const statePath = join3(STATE_DIR, `turn-${sessionId}.json`);
   rmSync(statePath, { force: true });
+  rmSync(join3(STATE_DIR, `loaded-${sessionId}`), { recursive: true, force: true });
   if (!prompt) process.exit(0);
   const projectConfig = join3(projectCwd, ".skillrouter.json");
   const routeStart = Date.now();
@@ -4671,6 +4672,9 @@ try {
       // rest pass.
       catalog,
       excluded: verdict.excluded,
+      // SKILL.md path per judged skill: the gate reads a loaded skill's file to allow
+      // the skills it names (an orchestrator calling its leaves).
+      sources: Object.fromEntries(verdict.result.scored.map((s) => [s.skill.id, s.skill.source])),
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,
@@ -4681,7 +4685,9 @@ try {
     })
   );
   if (verdict.invoke.length > 0 || verdict.suggest.length > 0) {
-    const lines = ["Skill routing verdict for this turn (decided by the skill router \u2014 do not select skills yourself):"];
+    const lines = [
+      "Skill routing verdict for this turn (decided by the skill router \u2014 do not select other skills yourself, but when a skill you loaded tells you to use another skill, use it):"
+    ];
     if (verdict.invoke.length > 0) lines.push(`- Invoke: ${verdict.invoke.join(", ")}`);
     if (verdict.suggest.length > 0)
       lines.push(`- Also relevant, invoke only if the task turns out to need them: ${verdict.suggest.join(", ")}`);
