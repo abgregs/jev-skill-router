@@ -7,7 +7,7 @@
       "name": "jev-skill-router",
       "source": ".",
       "description": "Per-turn semantic skill routing: a Jev-powered control plane that decides which skills to invoke each turn, before the model starts thinking.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }
