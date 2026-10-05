@@ -6,7 +6,7 @@ Two hooks take skill selection off the main agent. Both install with the plugin
 | Hook | Role | What it does |
 |---|---|---|
 | `hooks/user-prompt-submit.ts` | Routing | Fires before the model sees the turn, routes the prompt and recent transcript, saves the verdict, and injects "Invoke: … / Also relevant: …" into context. |
-| `hooks/pre-tool-use-gate.ts` | Enforcement | Matched on the `Skill` tool. Denies routed skills that aren't on the turn's approved list or named by a skill loaded this turn, and skills the config excludes. |
+| `hooks/pre-tool-use-gate.ts` | Enforcement | Matched on the `Skill` tool. Denies routed skills that aren't on the turn's approved list or named in the SKILL.md of a skill loaded this turn, and skills the config excludes. |
 
 ## Routing hook
 
@@ -34,6 +34,9 @@ or tool output; the model still sees all of those as usual.
 > any error lets the call through to Claude Code's normal permission flow. To truly block a
 > skill, use Claude Code's own `Skill(name)` deny rules.
 
+The gate runs only when the model calls the `Skill` tool. Nothing is checked at routing
+time: each call is tested against the verdict the routing hook saved for the turn.
+
 **Always allowed:**
 - Skills you typed as a slash command: `/git-commit`, `/anthropic-skills:pdf`, or the base
   `/name` of a namespaced skill.
@@ -41,9 +44,14 @@ or tool output; the model still sees all of those as usual.
 - Any skill the router didn't judge.
 - Skills named in the SKILL.md of a skill already loaded this turn, so an orchestrator
   (like `better-interface`) can call its leaves even when they scored below both bands.
-  Only a deliberate reference counts: `` `name` ``, `/name`, or "name skill". Excluded
-  skills stay denied. The gate can't tell "use `x`" from "`x` owns this, not me", so a
-  scope note also opens the door. That only permits the call; the model still decides.
+  "Loaded" means let through by the gate earlier in the turn, for any reason; the record
+  empties with each new verdict. When a call misses the list, the gate opens each loaded
+  skill's SKILL.md on disk and looks for a deliberate reference to the called skill:
+  `` `name` ``, `/name`, or "name skill". A match lets the call through and records that
+  skill as loaded too, so chains work. A suggested skill vouches for nothing until the model
+  loads it, and excluded skills stay denied. The gate can't tell "use `x`" from "`x` owns
+  this, not me", so a scope note also opens the door. That only permits the call; the model
+  still decides.
 
 **Only a slash command counts as your say-so.** A skill you ask for in prose ("use the
 git-commit skill", "update our docs") can score higher because the router reads your prompt,

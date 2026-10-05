@@ -63,8 +63,9 @@ model to it.
   tool output.
 - **Two bands:** skills at 0.85 or above are invoked (up to 6); skills from 0.80 to 0.85 are
   suggested by name for the model to use if a need shows up.
-- **The gate:** denies routed skills that aren't on the turn's list. It fails open: a
-  relevance filter, not a lock.
+- **The gate:** denies routed skills that aren't on the turn's list, unless a skill the model
+  already loaded this turn names them in its SKILL.md. It fails open: a relevance filter,
+  not a lock.
 - **Fast at any size:** every skill is judged in parallel. Recorded runs: 51 skills in
   121–270ms, 1,064 in about half a second.
 
