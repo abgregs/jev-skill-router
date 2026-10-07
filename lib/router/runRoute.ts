@@ -3,15 +3,15 @@
 // in-process (no subprocess hop). Owns the full resolution ladder
 // (explicit option > environment > config file > built-in default), skill loading,
 // judge construction (including jev key discovery), and route().
-import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { expandHome, loadConfigFile, stringList } from '../config.js'
 import { loadSkills, type SkillRoot } from '../skills/loadSkills.js'
 import { route } from './route.js'
+import { loadJevKey } from './jevKey.js'
 import { createMockJudge } from './mockJudge.js'
 import type { JevJudge } from './judge.js'
 import type { RouteResult, SessionState } from '../skills/types.js'
+
+export { jevKeyAvailable } from './jevKey.js'
 
 export interface RunRouteInput {
   query: string
@@ -52,41 +52,6 @@ export class RouterSetupError extends Error {
   ) {
     super(message)
   }
-}
-
-/**
- * Find TYPESAFE_API_KEY when the environment lacks it. First the plugin's
- * `typesafe_api_key` option, which Claude Code keeps in the OS credential store and
- * exports to the plugin's hooks as CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY. Then a
- * .env.local; candidates cover every place this module runs from: the caller's cwd (a
- * project's own .env.local), and the package root relative to this file — which is two
- * levels up in the source tree (lib/router/) and for the bundled artifacts one or two
- * levels up from dist/ and dist/hooks/.
- */
-function loadJevKey(): void {
-  if (process.env.TYPESAFE_API_KEY) return
-  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY
-  if (pluginKey) {
-    process.env.TYPESAFE_API_KEY = pluginKey
-    return
-  }
-  const moduleDir = dirname(fileURLToPath(import.meta.url))
-  const candidates = [
-    resolve('.env.local'),
-    join(moduleDir, '..', '..', '.env.local'),
-    join(moduleDir, '..', '.env.local')
-  ]
-  for (const p of candidates) {
-    if (!existsSync(p)) continue
-    process.loadEnvFile(p)
-    if (process.env.TYPESAFE_API_KEY) return
-  }
-}
-
-/** True when a Jev key can be found (environment, plugin option, or a .env.local). */
-export function jevKeyAvailable(): boolean {
-  loadJevKey()
-  return Boolean(process.env.TYPESAFE_API_KEY)
 }
 
 /** Build the named judge, loading the jev key if needed. Throws with a user-facing message. */

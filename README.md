@@ -49,7 +49,7 @@ CLI install, the key lookup order, uninstalling, and local development:
 | **CONTROL** | Absolute switches: `disable-model-invocation` and `user-invocable` flags, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
 | **RELEVANCE** | None of the switches look at your prompt; the model decides alone. | Jev measures each skill's description against the prompt, so the query decides. |
 | **VISIBILITY** | Nothing records why a skill fired, and a skill that should have fired leaves no trace. | Every skill gets a score. `jev-skill-router route` shows them, so you can see why a skill missed. |
-| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict and the skills it loads call for, and a slash command always gets through. |
+| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict and the skills it loads call for, judges any other call it makes, and a slash command always gets through. |
 | **SCALE** | The lack of control persists and grows more unwieldy with every skill you add. With many skills, Claude Code even trims descriptions to fit its context budget. | Write clear descriptions instead of managing switches. Every skill is judged in parallel, at any catalog size. |
 
 ## How it works
@@ -58,14 +58,15 @@ Before the model sees your prompt, Jev scores every skill against it. Plain-code
 turn those scores into a verdict that is added to the model's context, and a gate holds the
 model to it.
 
-- **What Jev reads:** your prompt, with the last ~2,000 characters of conversation as
+- **What Jev reads:** your prompt, with up to ~8,000 characters of conversation as
   background, against each skill's name and description. Not `CLAUDE.md`, open files, or
-  tool output.
+  tool output. A bare "go" is judged against the plan it approves.
 - **Two bands:** skills at 0.85 or above are invoked (up to 6); skills from 0.80 to 0.85 are
   suggested by name for the model to use if a need shows up.
-- **The gate:** denies routed skills that aren't on the turn's list, unless a skill the model
-  already loaded this turn names them in its SKILL.md. It fails open: a relevance filter,
-  not a lock.
+- **The gate:** holds the model to the turn's list, with two ways through for a skill that
+  isn't on it: a skill the model already loaded names it in its SKILL.md, or Jev judges the
+  call useful for the work when the model makes it. It fails open: a relevance filter, not
+  a lock.
 - **Fast at any size:** every skill is judged in parallel. Recorded runs: 51 skills in
   121–270ms, 1,064 in about half a second.
 
@@ -85,7 +86,8 @@ Details: [how routing works](docs/architecture/how-routing-works.md) ·
 
 > [!IMPORTANT]
 > Asking for a skill in words ("use the git-commit skill") doesn't guarantee it runs. It can
-> raise the skill's score, but only a slash command or `alwaysAllow` gets it past the gate.
+> raise the skill's score, but only a slash command or `alwaysAllow` gets it past the gate
+> without a judgment.
 
 ## Configuration
 

@@ -15,7 +15,7 @@
 //
 // Wiring: `jev-skill-router install claude`, or the plugin's hooks/hooks.json —
 // both point at the bundled dist/hooks/user-prompt-submit.mjs.
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { RouterSetupError, runRoute } from '../lib/router/runRoute.js'
@@ -24,32 +24,75 @@ import { typedSlash } from '../lib/slash.js'
 
 export const STATE_DIR = join(tmpdir(), 'jev-skill-router')
 
-/** Last few conversation turns from the session transcript, oldest first. */
-function recentTranscript(transcriptPath: string | undefined, maxChars = 2000): string {
+/**
+ * Conversation tail for the judge, oldest first, as "User: …" / "Assistant: …" lines.
+ * Selected by role, not counted back from the end of the file: the last assistant
+ * message is kept whole, because that is where a plan lives before the user says
+ * "go"; every other turn is clipped to its opening characters; turns are added newest
+ * first until the budget is spent. Only text blocks count — tool calls, tool results
+ * and the transcript's bookkeeping entries carry no routing signal. The budget sits far
+ * under Jev's state limit; it is bounded for accuracy (unrelated material costs it),
+ * not for size.
+ */
+function recentTranscript(
+  transcriptPath: string | undefined,
+  prompt: string,
+  budget = 8000,
+  clip = 600
+): string {
   if (!transcriptPath || !existsSync(transcriptPath)) return ''
   try {
-    const lines = readFileSync(transcriptPath, 'utf8').trim().split('\n').slice(-40)
-    const turns: string[] = []
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line)
-        if (entry.type !== 'user' && entry.type !== 'assistant') continue
-        const content = entry.message?.content
-        const text =
-          typeof content === 'string'
-            ? content
-            : Array.isArray(content)
-              ? content.filter((c: { type?: string }) => c.type === 'text').map((c: { text?: string }) => c.text).join(' ')
-              : ''
-        if (text.trim()) turns.push(`${entry.type === 'user' ? 'User' : 'Assistant'}: ${text.trim()}`)
-      } catch {
-        // skip unparseable lines
-      }
+    const turns = textTurns(transcriptPath)
+    // Claude Code may append the prompt to the transcript before firing the hook; it
+    // is sent as currentRequest already.
+    if (turns.at(-1)?.role === 'User' && turns.at(-1)?.text === prompt) turns.pop()
+    let lastAssistant = -1
+    for (let i = turns.length - 1; i >= 0 && lastAssistant < 0; i--) if (turns[i]?.role === 'Assistant') lastAssistant = i
+    const kept: string[] = []
+    let left = budget
+    for (let i = turns.length - 1; i >= 0 && left > 0; i--) {
+      const turn = turns[i]
+      if (!turn) continue
+      const text = turn.text.slice(0, i === lastAssistant ? left : Math.min(clip, left))
+      kept.push(`${turn.role}: ${text}`)
+      left -= text.length
     }
-    return turns.join('\n').slice(-maxChars)
+    return kept.reverse().join('\n')
   } catch {
     return ''
   }
+}
+
+/** Every user and assistant text turn in the tail of the transcript file, oldest first. */
+function textTurns(transcriptPath: string, maxBytes = 1 << 20): { role: 'User' | 'Assistant'; text: string }[] {
+  const size = statSync(transcriptPath).size
+  const fd = openSync(transcriptPath, 'r')
+  const buf = Buffer.alloc(Math.min(size, maxBytes))
+  try {
+    readSync(fd, buf, 0, buf.length, size - buf.length)
+  } finally {
+    closeSync(fd)
+  }
+  const lines = buf.toString('utf8').split('\n')
+  if (size > maxBytes) lines.shift() // a line cut by the byte window
+  const turns: { role: 'User' | 'Assistant'; text: string }[] = []
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line)
+      if (entry.type !== 'user' && entry.type !== 'assistant') continue
+      const content = entry.message?.content
+      const text =
+        typeof content === 'string'
+          ? content
+          : Array.isArray(content)
+            ? content.filter((c: { type?: string }) => c.type === 'text').map((c: { text?: string }) => c.text).join(' ')
+            : ''
+      if (text.trim()) turns.push({ role: entry.type === 'user' ? 'User' : 'Assistant', text: text.trim() })
+    } catch {
+      // skip unparseable lines
+    }
+  }
+  return turns
 }
 
 /** A line for the user, not the model: Claude Code shows systemMessage in the terminal. */
@@ -98,6 +141,7 @@ try {
   // Respect the project's own .skillrouter.json (the hook's cwd is not guaranteed).
   const projectConfig = join(projectCwd, '.skillrouter.json')
 
+  const transcript = recentTranscript(input.transcript_path, prompt) || undefined
   const routeStart = Date.now()
   let verdict: Awaited<ReturnType<typeof runRoute>>
   try {
@@ -109,7 +153,7 @@ try {
       // ~/.agents/skills default. A verdict drawn from the wrong store can never name
       // skills the host really has.
       skillRoots: defaultSkillRoots(projectCwd),
-      transcript: recentTranscript(input.transcript_path) || undefined,
+      transcript,
       configPath: existsSync(projectConfig) ? projectConfig : undefined
     })
   } catch (err) {
@@ -143,6 +187,8 @@ try {
       invoke: verdict.invoke,
       suggest: verdict.suggest,
       prompt,
+      // The same background the verdict was judged on: the gate re-judges against it.
+      transcript,
       ts: Date.now(),
       // Every skill the router judged, plus the ones the config excludes: the gate
       // governs these (excluded skills are ruled out, so it denies them) and lets the
@@ -152,6 +198,10 @@ try {
       // SKILL.md path per judged skill: the gate reads a loaded skill's file to allow
       // the skills it names (an orchestrator calling its leaves).
       sources: Object.fromEntries(verdict.result.scored.map((s) => [s.skill.id, s.skill.source])),
+      // Name and description per judged skill: what the gate's re-judge asks Jev about.
+      skills: Object.fromEntries(
+        verdict.result.scored.map((s) => [s.skill.id, { name: s.skill.name, description: s.skill.description }])
+      ),
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,
@@ -167,8 +217,9 @@ try {
   // systemMessage is the user-visible signature that the router ran this turn.
   if (verdict.invoke.length > 0 || verdict.suggest.length > 0) {
     const lines = [
-      'Skill routing verdict for this turn (decided by the skill router — do not select other skills yourself, ' +
-        'but when a skill you loaded tells you to use another skill, use it):'
+      'Skill routing verdict for this turn (decided by the skill router — start from these rather than choosing ' +
+        'skills yourself; if the work turns out to need another skill, or a skill you loaded tells you to use one, ' +
+        'call it and the gate will check it):'
     ]
     if (verdict.invoke.length > 0) lines.push(`- Invoke: ${verdict.invoke.join(', ')}`)
     if (verdict.suggest.length > 0)

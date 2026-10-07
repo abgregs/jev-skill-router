@@ -29,6 +29,12 @@ export function fixtureTargets(fixture: LabeledSession, catalog: 'real' | 'synth
   return (fixture.targets ?? ['synthetic']).includes(catalog)
 }
 
+const SWIFT_PLAN =
+  'User: the ios app hangs when the sync task and the ui both touch the cache. can you figure out what to do?\n' +
+  'Assistant: The hang is a data race: the sync task mutates the cache off the main actor while the view reads it. ' +
+  'The fix is to make the cache an actor, mark the view model @MainActor, and move the sync work into a task group so ' +
+  'the writes are serialized. That touches CacheStore.swift and SyncCoordinator.swift. Shall I make those changes?'
+
 export const SESSIONS: LabeledSession[] = [
   {
     id: 'payments-rollback',
@@ -203,7 +209,23 @@ export const SESSIONS: LabeledSession[] = [
       transcript: 'User: we just scoped the notifications revamp.'
     },
     // handoff is the near-twin (also conversation → document, different purpose).
+    // Retired from live runs 2026-10-07: `to-prd` sets disable-model-invocation, so the
+    // loader never routes it and no run can hit. The entry stays for the recorded
+    // user-only exhibit (eval:report and the demo read its truth by id); live and capture
+    // runs skip it (no targets). ste-rewrite below is its replacement as a hit fixture.
     expected: ['to-prd'],
+    targets: []
+  },
+  {
+    id: 'ste-rewrite',
+    session: {
+      latestQuery:
+        "the pump maintenance procedure in the field manual reads like engineering notes — rewrite it in " +
+        'simplified technical english so the technicians can follow it',
+      transcript: 'User: the field manual is going out to the service team next week.'
+    },
+    // better-writing (interface copy) and writing-for-agents (docs for agents) are the twins.
+    expected: ['simplified-technical-english'],
     targets: ['real']
   },
   {
@@ -231,6 +253,52 @@ export const SESSIONS: LabeledSession[] = [
     // over the better-* leaves ("holistic review rather than a single domain"). Do the
     // leaves stand down here the way the orchestrator stood down on build-animation?
     expected: ['better-interface'],
+    targets: ['real']
+  },
+  // ---- continuation turns: the plan lives in the transcript, the prompt is only a
+  // go-ahead. Added 2026-10-07 after live probes showed the current-request framing
+  // from finding 0004 routed nothing on these. The last fixture is the control: a
+  // topic switch away from the plan must still route on the prompt alone.
+  {
+    id: 'go-commit-pr',
+    session: {
+      latestQuery: 'yes go ahead',
+      transcript:
+        "User: I've finished the retry backoff changes and tests are green. What's left before this is reviewable?\n" +
+        'Assistant: Two steps remain. First, commit the staged retry-logic changes with a conventional message that ' +
+        'explains the backoff cap. Second, push the branch and open a pull request against main with a summary of the ' +
+        'change and the test evidence. Want me to proceed?'
+    },
+    expected: ['git-commit', 'git-create-pr'],
+    targets: ['real']
+  },
+  {
+    id: 'go-swift',
+    session: { latestQuery: 'proceed', transcript: SWIFT_PLAN },
+    expected: ['write-swift'],
+    targets: ['real']
+  },
+  {
+    id: 'go-radix',
+    session: {
+      latestQuery: 'do it',
+      transcript:
+        "User: we're moving the design system off radix this sprint. where should we start?\n" +
+        "Assistant: Start with the two primitives the most screens share: Dialog and DropdownMenu. I'd port each to the " +
+        'Base UI equivalent, keep the existing props surface, and run the component tests after each one. Ready when you are.'
+    },
+    expected: ['migrate-radix-to-base'],
+    targets: ['real']
+  },
+  {
+    id: 'switch-after-plan',
+    session: {
+      latestQuery:
+        'commit the staged retry-logic changes with a proper conventional message, then push the branch and open a pr for review',
+      transcript: SWIFT_PLAN
+    },
+    // write-swift is the trap: the plan in the transcript is Swift work the user walked away from.
+    expected: ['git-commit', 'git-create-pr'],
     targets: ['real']
   }
 ]

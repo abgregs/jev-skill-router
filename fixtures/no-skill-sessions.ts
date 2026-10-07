@@ -45,6 +45,17 @@ export const NO_SKILL_SESSIONS: NoSkillSession[] = [
     traps: ['git-commit']
   },
   {
+    id: 'ack-go-small-edit',
+    category: 'acknowledgement',
+    session: {
+      latestQuery: 'ok',
+      transcript:
+        "User: there's a typo in the README heading and the variable name in main.ts is misleading.\n" +
+        "Assistant: I'll fix the heading and rename the variable to activeSessionCount. OK?"
+    },
+    traps: ['better-writing', 'brief']
+  },
+  {
     id: 'ack-pick-option',
     category: 'acknowledgement',
     session: {

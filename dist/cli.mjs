@@ -3821,6 +3821,39 @@ var init_route = __esm({
   }
 });
 
+// lib/router/jevKey.ts
+import { existsSync as existsSync3 } from "node:fs";
+import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
+import { fileURLToPath } from "node:url";
+function loadJevKey() {
+  if (process.env.TYPESAFE_API_KEY) return;
+  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
+  if (pluginKey) {
+    process.env.TYPESAFE_API_KEY = pluginKey;
+    return;
+  }
+  const moduleDir = dirname2(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve3(".env.local"),
+    join2(moduleDir, "..", "..", ".env.local"),
+    join2(moduleDir, "..", ".env.local")
+  ];
+  for (const p of candidates) {
+    if (!existsSync3(p)) continue;
+    process.loadEnvFile(p);
+    if (process.env.TYPESAFE_API_KEY) return;
+  }
+}
+function jevKeyAvailable() {
+  loadJevKey();
+  return Boolean(process.env.TYPESAFE_API_KEY);
+}
+var init_jevKey = __esm({
+  "lib/router/jevKey.ts"() {
+    "use strict";
+  }
+});
+
 // lib/router/mockJudge.ts
 function sessionTermWeights(session) {
   const weights = /* @__PURE__ */ new Map();
@@ -4484,7 +4517,8 @@ var init_dist = __esm({
 // lib/router/jevJudge.ts
 var jevJudge_exports = {};
 __export(jevJudge_exports, {
-  createJevJudge: () => createJevJudge
+  createJevJudge: () => createJevJudge,
+  judgeLoad: () => judgeLoad
 });
 function toState(session) {
   const state = { currentRequest: session.latestQuery };
@@ -4497,9 +4531,9 @@ function skillNoul(skill) {
 Name: ${skill.name}
 What it does: ${skill.description}
 
-Should the agent invoke this skill for the user's current request (currentRequest)? Judge against the current request alone; earlierConversationBackground is context from preceding turns and often describes prior tasks already finished.`,
+Should the agent invoke this skill for the user's current request (currentRequest)? Judge against the current request; earlierConversationBackground is context from preceding turns and often describes prior tasks already finished. One exception: when currentRequest is only a brief go-ahead or continuation (such as "go", "proceed", "yes, do that") and states no task of its own, the user is approving the latest plan or proposal in earlierConversationBackground, so judge against that plan instead.`,
     {
-      true: "The current request clearly calls for this skill.",
+      true: "The current request, or the plan it approves, clearly calls for this skill.",
       // No "a different skill fits better" clause: this Noul sees only its own skill,
       // so it cannot judge that comparison.
       false: "This skill is unrelated to the current request \u2014 even if earlier conversation touched its domain."
@@ -4532,6 +4566,30 @@ function createJevJudge(config = {}) {
     }
   };
 }
+async function judgeLoad(session, skill, args, client = new TypeSafeClient()) {
+  const state = toState(session);
+  if (args) state.skillCallArguments = args;
+  const response = await client.systemOne({
+    state,
+    questions: {
+      load: noul(
+        `A coding agent is working on the user's current request (currentRequest; earlierConversationBackground is the conversation before it). Part-way through the work it has chosen to load this skill:
+Name: ${skill.name}
+What it does: ${skill.description}
+` + (args ? `It passed these arguments (skillCallArguments).
+` : "") + `
+Does loading this skill serve the request \u2014 directly, or for a step the work has turned out to need?`,
+        {
+          true: "This skill serves the current request or a step of it.",
+          false: "This skill has nothing to do with the current request; loading it would only spend context."
+        }
+      )
+    }
+  });
+  const p = response.answers.load?.noul;
+  if (typeof p !== "number") throw new Error("judgeLoad: Jev returned no probability");
+  return p;
+}
 var init_jevJudge = __esm({
   "lib/router/jevJudge.ts"() {
     "use strict";
@@ -4540,32 +4598,6 @@ var init_jevJudge = __esm({
 });
 
 // lib/router/runRoute.ts
-import { existsSync as existsSync3 } from "node:fs";
-import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
-import { fileURLToPath } from "node:url";
-function loadJevKey() {
-  if (process.env.TYPESAFE_API_KEY) return;
-  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
-  if (pluginKey) {
-    process.env.TYPESAFE_API_KEY = pluginKey;
-    return;
-  }
-  const moduleDir = dirname2(fileURLToPath(import.meta.url));
-  const candidates = [
-    resolve3(".env.local"),
-    join2(moduleDir, "..", "..", ".env.local"),
-    join2(moduleDir, "..", ".env.local")
-  ];
-  for (const p of candidates) {
-    if (!existsSync3(p)) continue;
-    process.loadEnvFile(p);
-    if (process.env.TYPESAFE_API_KEY) return;
-  }
-}
-function jevKeyAvailable() {
-  loadJevKey();
-  return Boolean(process.env.TYPESAFE_API_KEY);
-}
 async function createJudgeByName(name) {
   if (name === "jev") {
     loadJevKey();
@@ -4634,7 +4666,9 @@ var init_runRoute = __esm({
     init_config();
     init_loadSkills();
     init_route();
+    init_jevKey();
     init_mockJudge();
+    init_jevKey();
     RouterSetupError = class extends Error {
       constructor(code, message) {
         super(message);

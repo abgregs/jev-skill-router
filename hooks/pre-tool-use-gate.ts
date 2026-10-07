@@ -19,19 +19,71 @@
 //     orchestrator can call its leaves. Every skill the gate lets through is recorded
 //     for the turn, so a chain of such calls works too. Excluded skills stay denied.
 //
+// Last resort before a denial: a one-skill re-judge. The verdict is a snapshot taken
+// before the work began; what the task needs can surface mid-turn (a PDF inside the
+// deck, a convention the project docs point at). So when every free check misses, the
+// gate asks Jev whether THIS load serves the request, given the same background the
+// verdict saw plus the call's arguments, and allows at p ≥ REJUDGE_FLOOR. One Noul,
+// only on off-list calls. Each re-judge is appended to gate-<session>.jsonl in the
+// state dir, so sessions can be read back for what the gate let in and kept out.
+//
 // Wiring (~/.claude/settings.json or project .claude/settings.json):
 //   "hooks": { "PreToolUse": [ { "matcher": "Skill", "hooks": [ { "type": "command", "command":
 //     "/ABS/jev-skill-router/node_modules/.bin/tsx /ABS/jev-skill-router/hooks/pre-tool-use-gate.ts" } ] } ] }
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { typedSlash } from '../lib/slash.js'
+import { jevKeyAvailable } from '../lib/router/jevKey.js'
 
 const STATE_DIR = join(tmpdir(), 'jev-skill-router')
 const STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000
+// Lower than the routing threshold on purpose: routing asks "clearly calls for", the
+// re-judge asks "serves the work", and the agent's own reach is already evidence.
+const REJUDGE_FLOOR = 0.5
 
 function allow(): never {
   process.exit(0) // no output = default permission flow
+}
+
+/**
+ * Ask Jev whether this one load serves the turn's request. null when the question
+ * cannot be asked (no key, mock verdict, skill unknown, request failed) — the caller
+ * then falls through to the denial it would have issued anyway.
+ */
+async function rejudge(
+  state: TurnState,
+  id: string,
+  args: string | undefined,
+  logPath: string
+): Promise<number | null> {
+  const skill = state.skills?.[id]
+  if (!skill || state.judge !== 'jev' || !jevKeyAvailable()) return null
+  try {
+    const { judgeLoad } = await import('../lib/router/jevJudge.js')
+    const p = await judgeLoad({ latestQuery: state.prompt, transcript: state.transcript ?? '' }, skill, args)
+    try {
+      appendFileSync(logPath, JSON.stringify({ ts: Date.now(), skill: id, p, allowed: p >= REJUDGE_FLOOR }) + '\n')
+    } catch {
+      // the log is observability only
+    }
+    return p
+  } catch {
+    return null
+  }
+}
+
+interface TurnState {
+  invoke: string[]
+  suggest: string[]
+  prompt: string
+  transcript?: string
+  ts: number
+  judge?: string
+  catalog?: string[]
+  excluded?: string[]
+  sources?: Record<string, string>
+  skills?: Record<string, { name: string; description: string }>
 }
 
 function deny(reason: string): never {
@@ -98,15 +150,7 @@ try {
 
   const statePath = join(STATE_DIR, `turn-${input.session_id ?? 'unknown'}.json`)
   if (!existsSync(statePath)) allow()
-  const state = JSON.parse(readFileSync(statePath, 'utf8')) as {
-    invoke: string[]
-    suggest: string[]
-    prompt: string
-    ts: number
-    catalog?: string[]
-    excluded?: string[]
-    sources?: Record<string, string>
-  }
+  const state = JSON.parse(readFileSync(statePath, 'utf8')) as TurnState
   if (Date.now() - state.ts > STATE_MAX_AGE_MS) allow()
 
   // Resolve the call to a governed id. A synced skill is known as anthropic-skills:<name>
@@ -136,8 +180,19 @@ try {
     allow()
   }
 
+  // Every free check missed. Before denying, ask whether this load serves the work.
+  const excluded = (state.excluded ?? []).includes(judgedId)
+  const p = excluded
+    ? null
+    : await rejudge(state, judgedId, input.tool_input?.args, join(STATE_DIR, `gate-${input.session_id ?? 'unknown'}.jsonl`))
+  if (p !== null && p >= REJUDGE_FLOOR) {
+    recordLoaded(loadedDir, judgedId)
+    allow()
+  }
+
   deny(
-    `Skill routing gate: "${skill}" is not on this turn's approved list. ` +
+    `Skill routing gate: "${skill}" is not on this turn's approved list` +
+      (p === null ? '. ' : ` and was judged unrelated to this request (${p.toFixed(2)}). `) +
       `Invoke: [${state.invoke.join(', ') || 'none'}]. Suggested: [${state.suggest.join(', ') || 'none'}]. ` +
       'Use an approved skill, or ask the user if you believe this skill is needed.'
   )

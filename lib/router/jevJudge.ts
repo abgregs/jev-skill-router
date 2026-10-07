@@ -45,10 +45,13 @@ function skillNoul(skill: Skill) {
       `Name: ${skill.name}\n` +
       `What it does: ${skill.description}\n\n` +
       `Should the agent invoke this skill for the user's current request (currentRequest)? ` +
-      `Judge against the current request alone; earlierConversationBackground is context ` +
-      `from preceding turns and often describes prior tasks already finished.`,
+      `Judge against the current request; earlierConversationBackground is context from ` +
+      `preceding turns and often describes prior tasks already finished. One exception: when ` +
+      `currentRequest is only a brief go-ahead or continuation (such as "go", "proceed", ` +
+      `"yes, do that") and states no task of its own, the user is approving the latest plan or ` +
+      `proposal in earlierConversationBackground, so judge against that plan instead.`,
     {
-      true: 'The current request clearly calls for this skill.',
+      true: 'The current request, or the plan it approves, clearly calls for this skill.',
       // No "a different skill fits better" clause: this Noul sees only its own skill,
       // so it cannot judge that comparison.
       false:
@@ -88,4 +91,44 @@ export function createJevJudge(config: JevJudgeConfig = {}): JevJudge {
       return { probabilities, latencyMs }
     }
   }
+}
+
+/**
+ * The gate's question, asked for ONE skill after routing: part-way through the turn the
+ * agent has reached for a skill the verdict did not carry. Routing asks whether the
+ * request clearly calls for a skill; this asks the weaker question — whether the load
+ * plausibly serves the work — because the agent's own reach is evidence the routing
+ * snapshot could not have: what the task turned out to need (a PDF inside the deck, a
+ * convention the project docs point at). Returns p(the load serves the request).
+ */
+export async function judgeLoad(
+  session: SessionState,
+  skill: { name: string; description: string },
+  args: string | undefined,
+  client: TypeSafeClient = new TypeSafeClient()
+): Promise<number> {
+  const state = toState(session)
+  if (args) state.skillCallArguments = args
+  const response = await client.systemOne({
+    state,
+    questions: {
+      load: noul(
+        `A coding agent is working on the user's current request (currentRequest; ` +
+          `earlierConversationBackground is the conversation before it). Part-way through ` +
+          `the work it has chosen to load this skill:\n` +
+          `Name: ${skill.name}\n` +
+          `What it does: ${skill.description}\n` +
+          (args ? `It passed these arguments (skillCallArguments).\n` : '') +
+          `\nDoes loading this skill serve the request — directly, or for a step the work ` +
+          `has turned out to need?`,
+        {
+          true: 'This skill serves the current request or a step of it.',
+          false: 'This skill has nothing to do with the current request; loading it would only spend context.'
+        }
+      )
+    }
+  })
+  const p = (response.answers as Record<string, { noul?: number } | undefined>).load?.noul
+  if (typeof p !== 'number') throw new Error('judgeLoad: Jev returned no probability')
+  return p
 }

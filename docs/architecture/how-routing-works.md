@@ -12,11 +12,17 @@ do with the probabilities.
 ## 1. Judge
 
 **Inputs.** The session state is the current prompt (`currentRequest`) and recent
-conversation (`earlierConversationBackground`; the hook sends up to ~2,000 characters).
-The plugin and the CLI send exactly these two fields. Each Noul pairs that state with one skill's name and
-description, and is told to judge against the current request alone, treating the
-background as possibly finished prior work
-([finding 0004](../findings/0004_weight-current-request-over-transcript.md)).
+conversation (`earlierConversationBackground`; the hook sends up to ~8,000 characters,
+chosen by role with the last assistant message kept whole). The plugin and the CLI send
+exactly these two fields. Each Noul pairs that state with one skill's name and description,
+and is told to judge against the current request, treating the background as possibly
+finished prior work ([finding 0004](../findings/0004_weight-current-request-over-transcript.md)),
+with one exception: a prompt that is only a go-ahead ("go", "proceed") is judged against the
+latest plan in the background, since that plan is what the user approved.
+
+Jev's limit is 32k tokens of state per request; the hook's budget is far under it and is
+set for accuracy, not size. TypeSafe documents that unrelated material in state costs
+accuracy, and 0004 was that effect in practice.
 
 **Why `Noul`, not `Choice`.** We want an *independent* probability per skill, and to select
 *several* at once. `Choice` picks one winner from a single distribution (and caps at 255

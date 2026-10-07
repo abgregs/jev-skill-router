@@ -4150,7 +4150,8 @@ var init_dist = __esm({
 // lib/router/jevJudge.ts
 var jevJudge_exports = {};
 __export(jevJudge_exports, {
-  createJevJudge: () => createJevJudge
+  createJevJudge: () => createJevJudge,
+  judgeLoad: () => judgeLoad
 });
 function toState(session) {
   const state = { currentRequest: session.latestQuery };
@@ -4163,9 +4164,9 @@ function skillNoul(skill) {
 Name: ${skill.name}
 What it does: ${skill.description}
 
-Should the agent invoke this skill for the user's current request (currentRequest)? Judge against the current request alone; earlierConversationBackground is context from preceding turns and often describes prior tasks already finished.`,
+Should the agent invoke this skill for the user's current request (currentRequest)? Judge against the current request; earlierConversationBackground is context from preceding turns and often describes prior tasks already finished. One exception: when currentRequest is only a brief go-ahead or continuation (such as "go", "proceed", "yes, do that") and states no task of its own, the user is approving the latest plan or proposal in earlierConversationBackground, so judge against that plan instead.`,
     {
-      true: "The current request clearly calls for this skill.",
+      true: "The current request, or the plan it approves, clearly calls for this skill.",
       // No "a different skill fits better" clause: this Noul sees only its own skill,
       // so it cannot judge that comparison.
       false: "This skill is unrelated to the current request \u2014 even if earlier conversation touched its domain."
@@ -4198,6 +4199,30 @@ function createJevJudge(config = {}) {
     }
   };
 }
+async function judgeLoad(session, skill, args, client = new TypeSafeClient()) {
+  const state = toState(session);
+  if (args) state.skillCallArguments = args;
+  const response = await client.systemOne({
+    state,
+    questions: {
+      load: noul(
+        `A coding agent is working on the user's current request (currentRequest; earlierConversationBackground is the conversation before it). Part-way through the work it has chosen to load this skill:
+Name: ${skill.name}
+What it does: ${skill.description}
+` + (args ? `It passed these arguments (skillCallArguments).
+` : "") + `
+Does loading this skill serve the request \u2014 directly, or for a step the work has turned out to need?`,
+        {
+          true: "This skill serves the current request or a step of it.",
+          false: "This skill has nothing to do with the current request; loading it would only spend context."
+        }
+      )
+    }
+  });
+  const p = response.answers.load?.noul;
+  if (typeof p !== "number") throw new Error("judgeLoad: Jev returned no probability");
+  return p;
+}
 var init_jevJudge = __esm({
   "lib/router/jevJudge.ts"() {
     "use strict";
@@ -4206,14 +4231,9 @@ var init_jevJudge = __esm({
 });
 
 // hooks/user-prompt-submit.ts
-import { existsSync as existsSync4, mkdirSync, readFileSync as readFileSync3, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync as existsSync4, mkdirSync, openSync, readFileSync as readFileSync3, readSync, rmSync, statSync as statSync2, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join3 } from "node:path";
-
-// lib/router/runRoute.ts
-import { existsSync as existsSync3 } from "node:fs";
-import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
-import { fileURLToPath } from "node:url";
 
 // lib/config.ts
 import { existsSync, readFileSync } from "node:fs";
@@ -4426,6 +4446,30 @@ async function route(session, skills, judge, options2 = {}) {
   };
 }
 
+// lib/router/jevKey.ts
+import { existsSync as existsSync3 } from "node:fs";
+import { dirname as dirname2, join as join2, resolve as resolve3 } from "node:path";
+import { fileURLToPath } from "node:url";
+function loadJevKey() {
+  if (process.env.TYPESAFE_API_KEY) return;
+  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
+  if (pluginKey) {
+    process.env.TYPESAFE_API_KEY = pluginKey;
+    return;
+  }
+  const moduleDir = dirname2(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve3(".env.local"),
+    join2(moduleDir, "..", "..", ".env.local"),
+    join2(moduleDir, "..", ".env.local")
+  ];
+  for (const p of candidates) {
+    if (!existsSync3(p)) continue;
+    process.loadEnvFile(p);
+    if (process.env.TYPESAFE_API_KEY) return;
+  }
+}
+
 // lib/router/mockJudge.ts
 var DEFAULTS = {
   mid: 0.3,
@@ -4484,25 +4528,6 @@ var RouterSetupError = class extends Error {
   }
   code;
 };
-function loadJevKey() {
-  if (process.env.TYPESAFE_API_KEY) return;
-  const pluginKey = process.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY;
-  if (pluginKey) {
-    process.env.TYPESAFE_API_KEY = pluginKey;
-    return;
-  }
-  const moduleDir = dirname2(fileURLToPath(import.meta.url));
-  const candidates = [
-    resolve3(".env.local"),
-    join2(moduleDir, "..", "..", ".env.local"),
-    join2(moduleDir, "..", ".env.local")
-  ];
-  for (const p of candidates) {
-    if (!existsSync3(p)) continue;
-    process.loadEnvFile(p);
-    if (process.env.TYPESAFE_API_KEY) return;
-  }
-}
 async function createJudgeByName(name) {
   if (name === "jev") {
     loadJevKey();
@@ -4581,25 +4606,50 @@ function typedSlash(prompt, name) {
 
 // hooks/user-prompt-submit.ts
 var STATE_DIR = join3(tmpdir(), "jev-skill-router");
-function recentTranscript(transcriptPath, maxChars = 2e3) {
+function recentTranscript(transcriptPath, prompt, budget = 8e3, clip = 600) {
   if (!transcriptPath || !existsSync4(transcriptPath)) return "";
   try {
-    const lines = readFileSync3(transcriptPath, "utf8").trim().split("\n").slice(-40);
-    const turns = [];
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type !== "user" && entry.type !== "assistant") continue;
-        const content = entry.message?.content;
-        const text = typeof content === "string" ? content : Array.isArray(content) ? content.filter((c) => c.type === "text").map((c) => c.text).join(" ") : "";
-        if (text.trim()) turns.push(`${entry.type === "user" ? "User" : "Assistant"}: ${text.trim()}`);
-      } catch {
-      }
+    const turns = textTurns(transcriptPath);
+    if (turns.at(-1)?.role === "User" && turns.at(-1)?.text === prompt) turns.pop();
+    let lastAssistant = -1;
+    for (let i = turns.length - 1; i >= 0 && lastAssistant < 0; i--) if (turns[i]?.role === "Assistant") lastAssistant = i;
+    const kept = [];
+    let left = budget;
+    for (let i = turns.length - 1; i >= 0 && left > 0; i--) {
+      const turn = turns[i];
+      if (!turn) continue;
+      const text = turn.text.slice(0, i === lastAssistant ? left : Math.min(clip, left));
+      kept.push(`${turn.role}: ${text}`);
+      left -= text.length;
     }
-    return turns.join("\n").slice(-maxChars);
+    return kept.reverse().join("\n");
   } catch {
     return "";
   }
+}
+function textTurns(transcriptPath, maxBytes = 1 << 20) {
+  const size = statSync2(transcriptPath).size;
+  const fd = openSync(transcriptPath, "r");
+  const buf = Buffer.alloc(Math.min(size, maxBytes));
+  try {
+    readSync(fd, buf, 0, buf.length, size - buf.length);
+  } finally {
+    closeSync(fd);
+  }
+  const lines = buf.toString("utf8").split("\n");
+  if (size > maxBytes) lines.shift();
+  const turns = [];
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line);
+      if (entry.type !== "user" && entry.type !== "assistant") continue;
+      const content = entry.message?.content;
+      const text = typeof content === "string" ? content : Array.isArray(content) ? content.filter((c) => c.type === "text").map((c) => c.text).join(" ") : "";
+      if (text.trim()) turns.push({ role: entry.type === "user" ? "User" : "Assistant", text: text.trim() });
+    } catch {
+    }
+  }
+  return turns;
 }
 function notice(message) {
   console.log(JSON.stringify({ systemMessage: message }));
@@ -4630,6 +4680,7 @@ try {
   rmSync(join3(STATE_DIR, `loaded-${sessionId}`), { recursive: true, force: true });
   if (!prompt) process.exit(0);
   const projectConfig = join3(projectCwd, ".skillrouter.json");
+  const transcript = recentTranscript(input.transcript_path, prompt) || void 0;
   const routeStart = Date.now();
   let verdict;
   try {
@@ -4641,7 +4692,7 @@ try {
       // ~/.agents/skills default. A verdict drawn from the wrong store can never name
       // skills the host really has.
       skillRoots: defaultSkillRoots(projectCwd),
-      transcript: recentTranscript(input.transcript_path) || void 0,
+      transcript,
       configPath: existsSync4(projectConfig) ? projectConfig : void 0
     });
   } catch (err) {
@@ -4666,6 +4717,8 @@ try {
       invoke: verdict.invoke,
       suggest: verdict.suggest,
       prompt,
+      // The same background the verdict was judged on: the gate re-judges against it.
+      transcript,
       ts: Date.now(),
       // Every skill the router judged, plus the ones the config excludes: the gate
       // governs these (excluded skills are ruled out, so it denies them) and lets the
@@ -4675,6 +4728,10 @@ try {
       // SKILL.md path per judged skill: the gate reads a loaded skill's file to allow
       // the skills it names (an orchestrator calling its leaves).
       sources: Object.fromEntries(verdict.result.scored.map((s) => [s.skill.id, s.skill.source])),
+      // Name and description per judged skill: what the gate's re-judge asks Jev about.
+      skills: Object.fromEntries(
+        verdict.result.scored.map((s) => [s.skill.id, { name: s.skill.name, description: s.skill.description }])
+      ),
       // Observability extras (the gate ignores them): what the router run cost.
       judge: verdict.judge,
       judgedCount: verdict.result.judgedCount,
@@ -4686,7 +4743,7 @@ try {
   );
   if (verdict.invoke.length > 0 || verdict.suggest.length > 0) {
     const lines = [
-      "Skill routing verdict for this turn (decided by the skill router \u2014 do not select other skills yourself, but when a skill you loaded tells you to use another skill, use it):"
+      "Skill routing verdict for this turn (decided by the skill router \u2014 start from these rather than choosing skills yourself; if the work turns out to need another skill, or a skill you loaded tells you to use one, call it and the gate will check it):"
     ];
     if (verdict.invoke.length > 0) lines.push(`- Invoke: ${verdict.invoke.join(", ")}`);
     if (verdict.suggest.length > 0)
