@@ -25,7 +25,7 @@ fired). Secondary: readers arriving from the README/write-ups.
 
 jev-skill-router routes coding-agent sessions to agent skills: judge (one Jev Noul per
 skill, sharded and fanned out in parallel → p(should-invoke)) → policy (threshold + rank).
-The recorded demo replays captured **real-Jev** runs deterministically, with no live API,
+The recorded demo replays captured **real-Jev** runs verbatim, with no live API,
 so visitors see genuine routing quality without anyone paying per pageview.
 
 ## Positioning
@@ -72,5 +72,5 @@ vs competitors, or adoption numbers exist — do not fabricate any.
    alongside hits; replay pacing follows measured latency.
 3. **Show the mechanism, not a claim.** Judge → policy should be visible as structure,
    not described in prose.
-4. **Free to host, free of keys.** Static artifact; determinism is a feature visitors
-   can verify.
+4. **Free to host, free of keys.** Static artifact; a GitHub Actions workflow deploys it
+   to GitHub Pages, and no API key exists in the page.

@@ -42,7 +42,7 @@ and CLI send.
 
 The recordings are the demo's entire data source. `npm run demo:data` replays every capture
 through the real `route()` and policy code and writes `web/data/replays.json`; the page just
-renders it. No key, no API, deterministic: displayed latencies and shard counts are the
+renders it. No key, no API: displayed latencies and shard counts are the
 capture's own, never faked.
 
 ## The session bench
