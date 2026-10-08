@@ -42,6 +42,12 @@ the sum.
 This is also what scales past the 255 `Choice` cap: a Choice can't shard (shard winners
 would never meet), while independent Nouls shard losslessly.
 
+It is also why the catalog's size never changes what the judge sees. Claude Code's own
+skill listing has a character budget, a fraction of the context window, and past it the
+listing keeps every skill's name but drops descriptions, least-invoked first (per the
+Claude Code skills docs). The router reads every routed skill's full description on every
+turn, whatever the catalog size.
+
 **The cost model is exactly one Noul per routed skill per routing decision**, plus one Noul
 for each off-list skill call the [gate re-judges](../guide/claude-code-hooks.md#the-gate),
 which is rare. Latency flattens with parallelism; spend doesn't. It's linear in catalog size. The honest cost
