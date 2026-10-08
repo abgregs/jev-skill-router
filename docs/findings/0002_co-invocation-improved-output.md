@@ -40,5 +40,8 @@ The posture is deliberately recall-biased and entirely tunable:
    "Not for Y" clauses or uninstall the redundant twin.
 2. Then tighten thresholds.
 
-**One compliance nuance:** obedient models load the verdict's full invoke list; lazier ones
-cherry-pick. So verdict breadth is a real dial on frontier models, not a suggestion.
+**One compliance nuance:** obedient models load the verdict's full invoke list; others
+cherry-pick, and which is which varies by model: in the 2026-10-08 A/B, opus loaded one of
+four to six commanded design skills in most such turns
+([0003](0003_invoke-is-a-command-suggest-is-a-menu.md)). So verdict breadth is a real dial
+on a compliant model, and only a menu on the rest.
