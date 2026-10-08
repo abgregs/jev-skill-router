@@ -15,9 +15,10 @@
 //
 // Wiring: `jev-skill-router install claude`, or the plugin's hooks/hooks.json —
 // both point at the bundled dist/hooks/user-prompt-submit.mjs.
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { expandHome, loadConfigFile } from '../lib/config.js'
 import { RouterSetupError, runRoute } from '../lib/router/runRoute.js'
 import { defaultSkillRoots, SYNCED_NAMESPACE } from '../lib/skills/loadSkills.js'
 import { typedSlash } from '../lib/slash.js'
@@ -140,6 +141,7 @@ try {
 
   // Respect the project's own .skillrouter.json (the hook's cwd is not guaranteed).
   const projectConfig = join(projectCwd, '.skillrouter.json')
+  const configPath = existsSync(projectConfig) ? projectConfig : undefined
 
   const transcript = recentTranscript(input.transcript_path, prompt) || undefined
   const routeStart = Date.now()
@@ -154,7 +156,7 @@ try {
       // skills the host really has.
       skillRoots: defaultSkillRoots(projectCwd),
       transcript,
-      configPath: existsSync(projectConfig) ? projectConfig : undefined
+      configPath
     })
   } catch (err) {
     reportFailure(err, sessionId)
@@ -211,6 +213,32 @@ try {
       routerCliMs
     })
   )
+
+  // Opt-in score log (`log` in .skillrouter.json: true for the state dir, or a directory):
+  // one line per routed turn carrying every judged skill's probability, so a session can
+  // be read back skill by skill. Off by default because it keeps prompt text on disk.
+  try {
+    const logSetting = loadConfigFile(configPath).log
+    const logDir = logSetting === true ? STATE_DIR : typeof logSetting === 'string' ? expandHome(logSetting) : null
+    if (logDir) {
+      mkdirSync(logDir, { recursive: true })
+      appendFileSync(
+        join(logDir, `route-${sessionId}.jsonl`),
+        JSON.stringify({
+          ts: Date.now(),
+          session: sessionId,
+          prompt,
+          probabilities: verdict.probabilities,
+          invoke: verdict.invoke,
+          suggest: verdict.suggest,
+          judgedCount: verdict.result.judgedCount,
+          latencyMs: verdict.result.latencyMs
+        }) + '\n'
+      )
+    }
+  } catch {
+    // the log is observability only
+  }
 
   // Only stdout on a real verdict — conversational turns get no context noise.
   // JSON output splits the two audiences: additionalContext reaches the model,

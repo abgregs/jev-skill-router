@@ -4231,7 +4231,7 @@ var init_jevJudge = __esm({
 });
 
 // hooks/user-prompt-submit.ts
-import { closeSync, existsSync as existsSync4, mkdirSync, openSync, readFileSync as readFileSync3, readSync, rmSync, statSync as statSync2, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync as existsSync4, mkdirSync, openSync, readFileSync as readFileSync3, readSync, rmSync, statSync as statSync2, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join3 } from "node:path";
 
@@ -4680,6 +4680,7 @@ try {
   rmSync(join3(STATE_DIR, `loaded-${sessionId}`), { recursive: true, force: true });
   if (!prompt) process.exit(0);
   const projectConfig = join3(projectCwd, ".skillrouter.json");
+  const configPath = existsSync4(projectConfig) ? projectConfig : void 0;
   const transcript = recentTranscript(input.transcript_path, prompt) || void 0;
   const routeStart = Date.now();
   let verdict;
@@ -4693,7 +4694,7 @@ try {
       // skills the host really has.
       skillRoots: defaultSkillRoots(projectCwd),
       transcript,
-      configPath: existsSync4(projectConfig) ? projectConfig : void 0
+      configPath
     });
   } catch (err) {
     reportFailure(err, sessionId);
@@ -4741,6 +4742,27 @@ try {
       routerCliMs
     })
   );
+  try {
+    const logSetting = loadConfigFile(configPath).log;
+    const logDir = logSetting === true ? STATE_DIR : typeof logSetting === "string" ? expandHome(logSetting) : null;
+    if (logDir) {
+      mkdirSync(logDir, { recursive: true });
+      appendFileSync(
+        join3(logDir, `route-${sessionId}.jsonl`),
+        JSON.stringify({
+          ts: Date.now(),
+          session: sessionId,
+          prompt,
+          probabilities: verdict.probabilities,
+          invoke: verdict.invoke,
+          suggest: verdict.suggest,
+          judgedCount: verdict.result.judgedCount,
+          latencyMs: verdict.result.latencyMs
+        }) + "\n"
+      );
+    }
+  } catch {
+  }
   if (verdict.invoke.length > 0 || verdict.suggest.length > 0) {
     const lines = [
       "Skill routing verdict for this turn (decided by the skill router \u2014 start from these rather than choosing skills yourself; if the work turns out to need another skill, or a skill you loaded tells you to use one, call it and the gate will check it):"

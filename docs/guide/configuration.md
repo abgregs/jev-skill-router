@@ -13,6 +13,7 @@ file, not Claude Code's `settings.json`.
 | `maxSelected` | `6` | Cap on invoked skills per prompt; overflow drops to suggest. A bloat guard, not a tuned optimum. |
 | `exclude` | `[]` | Skill ids removed from routing entirely: never judged, never billed, denied by the gate unless you slash-invoke them. |
 | `alwaysAllow` | `[]` | Skill ids the gate always lets through ([when to use it](claude-code-hooks.md#keeping-a-routed-skill-always-callable)). |
+| `log` | off | `true` writes one line per routed turn, with every judged skill's probability, to `route-<session>.jsonl` in the state directory; a directory path writes it there instead. Off by default because it keeps prompt text on disk ([recording scores](claude-code-hooks.md#recording-scores)). |
 | `judge` | `jev` | `mock` runs the free keyword judge, for testing the plumbing only. |
 | `shardSize` | `250` | Nouls per Jev request; shards run in parallel. |
 | `skillsDir` | `~/.agents/skills` | CLI only. The hooks route on Claude Code's own catalog instead. |

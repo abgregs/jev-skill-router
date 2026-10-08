@@ -35,6 +35,25 @@ topic switch away from the plan still routes on the switch.
 > If a `CLAUDE.md` rule requires a skill, add that skill to `alwaysAllow` so the gate never
 > turns it away.
 
+### Recording scores
+
+Two different things are shown at two different times. In the session, each routed turn
+prints one line in the terminal: the invoke list, the suggest list, how many skills were
+judged, and the latency. Turns where nothing cleared either band print nothing, and the
+per-skill scores never appear in the thread. The scores come from the CLI on demand
+(`jev-skill-router route "<prompt>"`, [CLI](cli.md)) or, for real sessions, from the log:
+
+```json
+{ "log": true }
+```
+
+With that in `.skillrouter.json`, every routed turn appends one line to
+`route-<session>.jsonl` in the state directory (`jev-skill-router/` under the system temp
+dir): the prompt, every judged skill's probability, the invoke and suggest lists, the
+judged count, and the latency. Set `"log": "~/some/dir"` to write it somewhere the temp
+dir's cleanup won't reach. It is off by default because it keeps prompt text on disk. The
+gate's own log of the off-list calls it judged is always on and holds no prompt text.
+
 ## The gate
 
 > [!NOTE]
@@ -68,7 +87,8 @@ time: each call is tested against the verdict the routing hook saved for the tur
   call passes and is recorded as loaded. Below, the denial carries the score. Excluded
   skills are never asked about, and with no Jev key or a verdict from the mock judge there
   is nothing to ask, so the call is denied as before. Each of these judgments is appended
-  to `gate-<session>.jsonl` in the state directory.
+  to `gate-<session>.jsonl` in the state directory (`jev-skill-router/` under the system
+  temp dir).
 
 **Only a slash command counts as your say-so.** A skill you ask for in prose ("use the
 git-commit skill", "update our docs") can score higher because the router reads your prompt,
