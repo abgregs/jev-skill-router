@@ -37,7 +37,8 @@ const TEST_STRIP_THRESHOLDS = [0.8, 0.85, 0.9]
 // task" — a task-type-agnostic lifecycle signal that reads as noise beside
 // task-matched skills — and `debrief` is its pair. Nouls are independent, so
 // dropping them is an exact projection onto the 51-skill catalog and every other
-// number is unchanged. The raw recordings keep the full 53-skill judgment.
+// number is unchanged. The 2026-10-01 recordings already omit both (judged 51), so
+// this only matters for older captures that carry them.
 const DISPLAY_EXCLUDE = new Set(['brief', 'debrief'])
 
 interface CapturedRun {

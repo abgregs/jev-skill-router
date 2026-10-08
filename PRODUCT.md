@@ -37,10 +37,9 @@ timing is driven by the actual recorded latencies from those runs.
 
 Visitors are terminal-native engineers who read benchmark tables, CI dashboards, and
 eval harnesses daily. The demo is browsed casually (often from a README link) on desktop
-first. Curated recorded runs: 17 real-catalog fixtures (53 installed skills; the demo
-displays 51 after excluding two conversation-scoped skills), 5 synthetic-catalog scale
-fixtures (1,064 skills, Noul shard fan-out past the 255 `Choice` cap), plus a doctor
-probe sweep (catalog-health/overlap findings).
+first. Curated recorded runs: 17 real-catalog fixtures (51 routed skills, captured
+2026-10-01), 5 synthetic-catalog scale fixtures (1,064 skills, Noul shard fan-out past
+the 255 `Choice` cap), plus a doctor probe sweep (catalog-health/overlap findings).
 
 ## Capabilities and Constraints
 
