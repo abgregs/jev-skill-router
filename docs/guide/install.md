@@ -9,7 +9,10 @@
 The router asks Jev about every routed skill on every prompt: one Noul per skill per turn,
 so a 51-skill catalog spends 51 Nouls a prompt, plus one Noul for each off-list skill call
 the gate re-judges ([hooks](claude-code-hooks.md#the-gate)). Skills you `exclude` are never
-judged and cost nothing (see [configuration](configuration.md)).
+judged and cost nothing (see [configuration](configuration.md)). Expect the router to add
+cost and time to a session, not remove it: a paired A/B on opus found it loads more skill
+text and spends more than stock selection, in exchange for workflow skills firing that the
+model skips on its own ([results](../evaluation/results.md#development-runs)).
 
 ## Option 1: the plugin (recommended)
 

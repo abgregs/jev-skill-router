@@ -10,6 +10,11 @@ released router bundles. These runs
 explain design decisions; they are not results for the released router. The only claimed
 results are the recorded runs in docs/evaluation/results.md.
 
+Token fields in the three September bench files (`tokensBeforeFirstSkill`, `outputTokens`
+and the other per-run usage counters) were summed from the stream's per-message usage,
+which undercounts output tokens badly; do not cite them. From 2026-10-08 the harness
+reads usage from each turn's `result` event.
+
 - `bench-2026-09-21T22-25-14.json` — 6 fixtures × 3 reps × 2 arms, sonnet.
   Run against the pre-rewrite router (prefilter shortlist still in place); the
   no-router arm is unaffected by that, router-arm latency/verdicts may differ

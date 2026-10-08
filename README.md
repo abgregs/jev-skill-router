@@ -37,7 +37,9 @@ From then on, every prompt is routed before the model sees it.
 
 > [!TIP]
 > **Cost:** one Noul per routed skill per prompt (51 skills = 51 Nouls). Excluded skills are
-> never judged and cost nothing.
+> never judged and cost nothing. The router is not a cost or latency saver: in a paired
+> multi-turn A/B on opus it loaded more skill text and spent more time and money than
+> stock selection. What it buys is coverage and control (see [Results](#results)).
 
 CLI install, the key lookup order, uninstalling, and local development:
 [install guide](docs/guide/install.md).
@@ -133,6 +135,12 @@ All keys, file precedence, and the `config` command: [configuration](docs/guide/
 - The top-scoring skill landed at 0.97–0.99 on every task; on the off-catalog asks, the best
   wrong candidate topped out between 0.29 and 0.61.
 - Small, single-turn, and labeled by us: evidence, not a benchmark.
+- Not a cost or latency saver. A paired multi-turn A/B on the released bundles (opus, three
+  six-turn sessions per arm, every turn run to completion) found the router hit 18/18
+  expected skills to stock's 14/18, with the gap entirely the workflow skills the model
+  skips on its own, and neither arm loading a skill needlessly. It also loaded 12k–40k
+  more bytes of SKILL.md per session and cost $0.05–$0.45 and 11–72s more. Development
+  tier, not a claim: [bench results](bench/results/README.md#multi-turn-cost-ab--2026-10-08-released-bundles-opus-symmetric-stop-rule).
 
 Full breakdown and caveats: [results](docs/evaluation/results.md).
 

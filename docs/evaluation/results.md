@@ -100,3 +100,12 @@ parallel shards.
 Everything in [`bench/results/`](../../bench/results/README.md) and the findings marked
 *development finding* came from pre-release builds while the router was being built. They
 explain design decisions; they are not results for the released router.
+
+One exception in provenance, not in tier: the 2026-10-08 multi-turn cost A/B ran the
+released `dist/hooks` bundles on opus, with a symmetric stop rule, so its cost and latency
+deltas are comparable. It stays development tier because the session model's compliance
+is part of the measurement. Its finding: the router is not a cost or latency saver. It hit
+18/18 expected skills to stock's 14/18 (the gap is the workflow skills opus skips unrouted),
+neither arm loaded a skill needlessly, and the router loaded 12k–40k more SKILL.md bytes
+and spent $0.05–$0.45 and 11–72s more per six-turn session. The public line is coverage
+and control, never savings.
