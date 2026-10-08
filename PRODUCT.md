@@ -17,7 +17,9 @@ preview convenience; the artifact itself is static.
 
 Developers evaluating the Jev/TypeSafe pattern — engineers deciding whether typed,
 thresholdable routing judgments are worth adopting in their own agent stacks. They land
-on the demo as the proof artifact. Secondary: readers arriving from the README/write-ups.
+on the demo as the proof artifact. Also skill authors (how a skill scores, where it
+collides) and large-catalog maintainers (proof every skill is seen, a record of why one
+fired). Secondary: readers arriving from the README/write-ups.
 
 ## Product Purpose
 

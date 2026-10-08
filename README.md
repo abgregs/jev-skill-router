@@ -4,8 +4,9 @@
 scores every skill against every prompt, turning the model's hidden "should I use this
 skill?" judgment call into probabilities that code can act on.
 
-[Demo](https://abgregs.github.io/jev-skill-router/) · [Install](#install) · [Why](#why) ·
-[How it works](#how-it-works) · [Everyday use](#everyday-use) ·
+[Demo](https://abgregs.github.io/jev-skill-router/) · [Install](#install) ·
+[What it guarantees](#what-it-guarantees) · [What the experiment found](#what-the-experiment-found) ·
+[Who it's for](#who-its-for) · [How it works](#how-it-works) · [Everyday use](#everyday-use) ·
 [Configuration](#configuration) · [Results](#results) · [Docs](docs/README.md)
 
 [![The recorded demo: one prompt, run as a plain coding agent and with jev-skill-router](docs/assets/demo.png)](https://abgregs.github.io/jev-skill-router/)
@@ -44,15 +45,75 @@ From then on, every prompt is routed before the model sees it.
 CLI install, the key lookup order, uninstalling, and local development:
 [install guide](docs/guide/install.md).
 
-## Why
+## What it is
 
-| | Claude Code | Jev Skill Router |
-|---|---|---|
-| **CONTROL** | Absolute switches: `disable-model-invocation` and `user-invocable` flags, allow/deny, path globs, set once per skill. | Per prompt: every skill is scored against what you just asked, and you set the thresholds. |
-| **RELEVANCE** | None of the switches look at your prompt; the model decides alone. | Jev measures each skill's description against the prompt, so the query decides. |
-| **VISIBILITY** | Nothing records why a skill fired, and a skill that should have fired leaves no trace. | Every skill gets a score. `jev-skill-router route` shows them, so you can see why a skill missed. |
-| **ENFORCEMENT** | The model can invoke any allowed skill at any point. | A gate holds the model to the verdict and the skills it loads call for, judges any other call it makes, and a slash command always gets through. |
-| **SCALE** | The lack of control persists and grows more unwieldy with every skill you add. With many skills, Claude Code even trims descriptions to fit its context budget. | Write clear descriptions instead of managing switches. Every skill is judged in parallel, at any catalog size. |
+A working Claude Code plugin, and an experiment in using a judgment model as the control
+plane for skill selection. The plugin routes every prompt. The experiment asks what changes
+when that decision is made by scored judgments instead of by the model in the session. The
+findings are as much the point as the tool.
+
+## What it guarantees
+
+- **The decision doesn't depend on the session model.** The same prompt and catalog produced
+  the same invoke list on fable, sonnet, opus, and haiku. In our runs, identical requests
+  returned scores that differed by about 0.01, so a skill sitting on a cut can flicker: the
+  decision is reproducible to that floor, not deterministic. What the model then does with
+  the verdict still varies by model.
+- **Every decision is visible.** Every skill is scored on every turn. In a session you see one
+  line per routed turn: what was invoked, what was suggested, how many skills were judged,
+  and how long it took. The scores themselves come from the CLI: `jev-skill-router route`
+  prints every skill's probability for any prompt, so a skill that should have fired can be
+  shown its number. Set `log` in `.skillrouter.json` and every turn's scores are written to
+  a session log as well ([recording scores](docs/guide/claude-code-hooks.md#recording-scores)).
+- **Every description is read, at any catalog size.** Claude Code drops skill descriptions
+  from its listing once they exceed a fraction of the context window. The router judges all
+  of them in parallel: 51 skills in 121–270ms, 1,064 in about half a second. Spend is one
+  Noul per skill per prompt, so it grows with the catalog.
+- **Control is per prompt, in code.** Thresholds, an invoke band and a suggest band,
+  `exclude`, `alwaysAllow`, and a gate that holds the model to the verdict, in place of
+  per-skill switches set once.
+
+## What the experiment found
+
+Recorded runs grade the judge alone; development runs put a session model in the loop
+([the tiers](docs/findings/README.md)).
+
+- **Frontier models skip workflow skills.** In a paired multi-turn A/B on opus, the router's
+  only hit advantage, 18/18 to 14/18, was `git-commit` and `git-create-pr`; opus did the
+  commit with raw git in two of three sessions. Task skills it found on its own.
+  Development run.
+- **Descriptions are the routing surface, and hierarchies fall out of them.** The same
+  orchestrator scored 0.09 on a narrow build and 0.97 on a holistic review
+  ([finding 0001](docs/findings/0001_hierarchies-read-from-descriptions.md)). Recorded runs.
+- **Invoke and suggest are different speech acts.** Models load a commanded list and consult
+  a suggested one ([finding 0003](docs/findings/0003_invoke-is-a-command-suggest-is-a-menu.md)).
+  Development.
+- **Single-turn evals miss the failure that matters.** Topic switches mid-session broke the
+  judge until its input was reframed, and only a multi-turn bench caught it
+  ([finding 0004](docs/findings/0004_weight-current-request-over-transcript.md)). Development.
+- **It is not a cost or latency saver.** About 0.3s and one Noul per skill per turn, and the
+  model loads and does more with the skills it is handed
+  ([bench results](bench/results/README.md#multi-turn-cost-ab--2026-10-08-released-bundles-opus-symmetric-stop-rule)).
+  Development.
+- **Judgment-model lessons.** Nouls over a Choice for multi-select and lossless sharding, the
+  noise floor, context rot from unrelated state, and a two-sided question for "go" turns
+  ([how routing works](docs/architecture/how-routing-works.md)).
+
+## Who it's for
+
+- **Skill authors:** see how a skill scores against real prompts and where it collides with
+  its siblings ([route](docs/guide/cli.md), [doctor](docs/guide/catalog-doctor.md)).
+- **Large-catalog maintainers:** proof the model sees every skill, and any skill's score for
+  any prompt on demand, with no context fraction to tune.
+- **Teams with process mandates:** workflow skills that standing instructions require fire
+  instead of being skipped.
+- **People building or evaluating tool selection:** the methodology findings above.
+- **Developers curious about Jev:** a worked control-plane pattern in a real harness.
+
+**Trade-offs.** It adds cost and latency rather than removing them. Overlapping catalogs
+co-invoke, which the doctor exists to clean up. The gate fails open and is not a security
+boundary. It runs only in Claude Code. And a frontier model on a small catalog already finds
+its task skills without help.
 
 ## How it works
 
