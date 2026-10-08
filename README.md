@@ -23,14 +23,14 @@ To install, run:
 
 ```
 claude /plugin marketplace add abgregs/jev-skill-router
-claude /plugin install jev-skill-router@jev
+claude /plugin install jev-skill-router@abgregs
 ```
 
 In the Claude Code desktop app or an already open Claude Code session, run:
 
 ```
 /plugin marketplace add abgregs/jev-skill-router
-/plugin install jev-skill-router@jev
+/plugin install jev-skill-router@abgregs
 ```
 
 Enter your TypeSafe key when Claude Code asks; it's kept in your system's credential store.

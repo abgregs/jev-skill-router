@@ -22,26 +22,26 @@ stale. To install, run:
 
 ```
 claude /plugin marketplace add abgregs/jev-skill-router
-claude /plugin install jev-skill-router@jev
+claude /plugin install jev-skill-router@abgregs
 ```
 
 In the Claude Code desktop app or an already open Claude Code session, run:
 
 ```
 /plugin marketplace add abgregs/jev-skill-router
-/plugin install jev-skill-router@jev
+/plugin install jev-skill-router@abgregs
 ```
 
 That registers two hooks: routing before every prompt, and a gate on the `Skill` tool
 ([details](claude-code-hooks.md)).
 
-**Uninstall:** `/plugin uninstall jev-skill-router@jev`.
+**Uninstall:** `/plugin uninstall jev-skill-router@abgregs`.
 
 ## The API key
 
 - Claude Code asks for the key when it enables the plugin and keeps it in your system's
   credential store, not in `settings.json`.
-- `/plugin configure jev-skill-router@jev` sets or changes it later.
+- `/plugin configure jev-skill-router@abgregs` sets or changes it later.
 - An exported `TYPESAFE_API_KEY` also works and takes precedence.
 
 The hooks look for the key in this order: exported `TYPESAFE_API_KEY`, then the plugin's

@@ -1,5 +1,5 @@
 {
-  "name": "jev",
+  "name": "abgregs",
   "description": "Jev-powered tooling for coding agents: semantic skill routing as a per-turn control plane.",
   "owner": { "name": "Austin Gregersen" },
   "plugins": [

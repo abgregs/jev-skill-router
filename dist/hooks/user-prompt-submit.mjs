@@ -4662,7 +4662,7 @@ function reportFailure(err, sessionId) {
     mkdirSync(STATE_DIR, { recursive: true });
     writeFileSync(marker, "");
     notice(
-      "jev-skill-router is off: no TypeSafe API key. Set one with /plugin configure jev-skill-router@jev, or export TYPESAFE_API_KEY before starting Claude Code."
+      "jev-skill-router is off: no TypeSafe API key. Set one with /plugin configure jev-skill-router@abgregs, or export TYPESAFE_API_KEY before starting Claude Code."
     );
     return;
   }
