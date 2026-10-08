@@ -66,8 +66,9 @@ time: each call is tested against the verdict the routing hook saved for the tur
   Jev one question about that one skill, against the same prompt and background the verdict
   saw plus the call's arguments: does loading it serve the request? At 0.5 or above the
   call passes and is recorded as loaded. Below, the denial carries the score. Excluded
-  skills are never asked about. Each of these judgments is appended to
-  `gate-<session>.jsonl` in the state directory.
+  skills are never asked about, and with no Jev key or a verdict from the mock judge there
+  is nothing to ask, so the call is denied as before. Each of these judgments is appended
+  to `gate-<session>.jsonl` in the state directory.
 
 **Only a slash command counts as your say-so.** A skill you ask for in prose ("use the
 git-commit skill", "update our docs") can score higher because the router reads your prompt,

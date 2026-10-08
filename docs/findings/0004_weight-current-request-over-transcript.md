@@ -35,6 +35,12 @@ The fix is in how the judge input is framed, not in dropping context:
 
 See [how routing works](../architecture/how-routing-works.md#1-judge) for the shipped input.
 
+> [!NOTE]
+> Since 2026-10-07 the framing carries one exception: a prompt that is only a go-ahead
+> ("go", "proceed") is judged against the latest plan in the background, because on those
+> turns the current request alone has nothing to judge. Topic switches still route on the
+> prompt; the fixtures `go-*` and `switch-after-plan` in `fixtures/sessions.ts` cover both.
+
 ## Re-test
 
 Live, across a five-prompt session with two hard topic switches:

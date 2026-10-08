@@ -211,8 +211,9 @@ export const SESSIONS: LabeledSession[] = [
     // handoff is the near-twin (also conversation → document, different purpose).
     // Retired from live runs 2026-10-07: `to-prd` sets disable-model-invocation, so the
     // loader never routes it and no run can hit. The entry stays for the recorded
-    // user-only exhibit (eval:report and the demo read its truth by id); live and capture
-    // runs skip it (no targets). ste-rewrite below is its replacement as a hit fixture.
+    // user-only exhibit (eval:report and the demo read its truth by id). With no targets,
+    // live probes skip it and eval:capture records it as a negative control. ste-rewrite
+    // below is its replacement as a hit fixture.
     expected: ['to-prd'],
     targets: []
   },

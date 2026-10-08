@@ -7,8 +7,9 @@
 ## Cost
 
 The router asks Jev about every routed skill on every prompt: one Noul per skill per turn,
-so a 51-skill catalog spends 51 Nouls a prompt. Skills you `exclude` are never judged and
-cost nothing (see [configuration](configuration.md)).
+so a 51-skill catalog spends 51 Nouls a prompt, plus one Noul for each off-list skill call
+the gate re-judges ([hooks](claude-code-hooks.md#the-gate)). Skills you `exclude` are never
+judged and cost nothing (see [configuration](configuration.md)).
 
 ## Option 1: the plugin (recommended)
 

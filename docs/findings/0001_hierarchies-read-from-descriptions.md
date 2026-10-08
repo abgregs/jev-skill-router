@@ -35,9 +35,9 @@ is no metadata and no naming heuristic; the hierarchy exists only in the descrip
 
 An earlier judge framing consolidated this shape (leaves dominated below threshold). The
 shipped `currentRequest` framing, adopted because it survives mid-session topic switches
-([0004](0004_weight-current-request-over-transcript.md)), judges each skill against the
-current request alone, so genuine same-territory relevance now reads as several independent
-honest yeses.
+([0004](0004_weight-current-request-over-transcript.md)), judges each skill independently
+against the current request, so genuine same-territory relevance now reads as several
+independent honest yeses.
 
 ## What it means
 

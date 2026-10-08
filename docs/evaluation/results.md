@@ -8,7 +8,9 @@
 
 - **Same inputs as users:** Jev judged each run on what the plugin and CLI send, the prompt
   and the conversation tail.
-- **Same code:** the judge prompt and policy code are unchanged since capture.
+- **Same policy, one wording change since:** the policy code is unchanged since capture. The
+  judge wording gained a go-ahead exception on 2026-10-07; the drift check is
+  [below](#judge-wording-change-2026-10-07) and the recordings were not replaced.
 - **Reproducible:** `npm run demo:data` replays every row
   ([running evals](running-evals.md)).
 
@@ -60,6 +62,23 @@ sees only its own skill cannot judge. The 17 runs were re-captured on the new wo
 same day. Every check above held. Scores rose slightly and consistently: 278 of 867 skill
 scores went up, 8 went down, and the largest change was 0.09. The one changed verdict is
 `holistic-review`, which gained `better-accessibility`.
+
+## Judge wording change (2026-10-07)
+
+The Noul gained one exception: a prompt that is only a go-ahead ("go", "proceed") is judged
+against the latest plan in the background ([how routing works](../architecture/how-routing-works.md#1-judge)).
+A same-day recapture on the same skills root checked the effect; it was **not** adopted as
+the results above, because that root had shrunk to 38 skills (35 shared with the 51
+recorded). Over the shared skills:
+
+| Set | Pairs compared | Mean \|Δp\| | Pairs moving > 0.2 | Verdict changes |
+|---|---|---|---|---|
+| 14 task fixtures | 595 | 0.007 | 0 | 1: `mobile-list-perf` added `diagnosing-bugs` (0.82 → 0.85), a listed companion |
+| 27 no-skill prompts | 945 | 0.008 | 7 | 0 needless loads, 0 suggestions |
+
+The seven larger moves are all on acknowledgement or carry-over prompts, the branch the
+exception touches: background skills rose (largest 0.09 → 0.51) but none reached the
+suggest floor. Every check above held.
 
 ## Synthetic catalog: the scale story only
 

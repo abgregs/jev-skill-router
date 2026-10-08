@@ -11,7 +11,8 @@ jev-skill-router/
 │   │   ├── runRoute.ts         # config + catalog + judge → route
 │   │   ├── route.ts            # shard, fan out, apply policy
 │   │   ├── policy.ts           # invoke and suggest bands, cap
-│   │   ├── jevJudge.ts         # real judge (default)
+│   │   ├── jevJudge.ts         # real judge (default); also the gate's re-judge
+│   │   ├── jevKey.ts           # finds the TypeSafe key for runRoute and the gate
 │   │   ├── mockJudge.ts        # keyword judge, free
 │   │   └── recordedJudge.ts    # replays recordings
 │   ├── skills/
@@ -26,6 +27,7 @@ jev-skill-router/
 │   └── build.ts                # bundles into dist/
 ├── fixtures/
 │   ├── sessions.ts             # labeled eval fixtures
+│   ├── no-skill-sessions.ts    # prompts that need no skill
 │   └── recordings/             # captured real-Jev runs
 ├── dist/                       # committed bundles: command + hooks
 ├── web/                        # recorded demo page

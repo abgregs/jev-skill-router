@@ -15,3 +15,14 @@ how it works, what the evals show, and what we learned building it.
 > [Evaluation → Results](evaluation/results.md). Development runs (`bench/results/`) and
 > findings marked *development finding* explain design decisions; they are not results for
 > the released router.
+
+## Cross-cutting axes
+
+Concerns whose rules are spread across sections, audited one per debrief for whether the
+rules still compose.
+
+| Axis | Where its rules live | Last audited |
+|---|---|---|
+| Judge inputs (prompt, background, framing) | [hooks guide](guide/claude-code-hooks.md#what-jev-reads), [how routing works](architecture/how-routing-works.md#1-judge), [results](evaluation/results.md), findings [0001](findings/0001_hierarchies-read-from-descriptions.md), [0004](findings/0004_weight-current-request-over-transcript.md) | 2026-10-07 |
+| Gate permissions (what passes the `Skill` tool) | [hooks guide](guide/claude-code-hooks.md#the-gate), [configuration](guide/configuration.md), [README](../README.md#how-it-works) | — |
+| Evidence tiers (recorded runs vs development) | this page, [evaluation](evaluation/README.md), [findings](findings/README.md) | — |

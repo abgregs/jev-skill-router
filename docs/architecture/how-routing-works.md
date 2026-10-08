@@ -42,8 +42,9 @@ the sum.
 This is also what scales past the 255 `Choice` cap: a Choice can't shard (shard winners
 would never meet), while independent Nouls shard losslessly.
 
-**The cost model is exactly one Noul per routed skill per routing decision.** Latency
-flattens with parallelism; spend doesn't. It's linear in catalog size. The honest cost
+**The cost model is exactly one Noul per routed skill per routing decision**, plus one Noul
+for each off-list skill call the [gate re-judges](../guide/claude-code-hooks.md#the-gate),
+which is rare. Latency flattens with parallelism; spend doesn't. It's linear in catalog size. The honest cost
 levers are catalog hygiene (`exclude`, the [doctor](../guide/catalog-doctor.md)), not a
 lossy retrieval layer in front of the judge.
 
