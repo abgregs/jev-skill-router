@@ -47,6 +47,7 @@ npm run demo        # preview server for web/ (the page itself is static)
 
 npm run route:live      # one fixture over the real catalog (needs a key)
 npm run eval:capture    # real-Jev evals, writes recordings (needs a key)
+npm run bench:session   # paired stock-vs-router sessions (needs a key, spends on both meters)
 ```
 
 Evals and the demo data: [running evals](../evaluation/running-evals.md).

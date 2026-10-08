@@ -13,6 +13,9 @@
 ## What we saw
 
 - **The invoke band is obeyed wholesale.** A compliant model loads every commanded skill.
+  Compliance varies by model: in the 2026-10-08 A/B, opus loaded one of the four to six
+  commanded design-family skills in four of six such turns, and two or three in the other
+  two.
 - **The suggest band is consulted, not obeyed.** Forced suggest-only verdicts (threshold set
   above 1.0, so nothing could reach the invoke bar) showed the model taking exactly one
   task-central suggestion per session, sometimes as its literal first action, sometimes

@@ -23,6 +23,7 @@ jev-skill-router/
 ├── scripts/
 │   ├── cli.ts                  # the jev-skill-router command
 │   ├── eval-capture.ts         # records real-Jev runs
+│   ├── session-bench.ts        # paired A/B of real sessions, stock vs router
 │   ├── demo-data.ts            # recordings → demo data
 │   └── build.ts                # bundles into dist/
 ├── fixtures/

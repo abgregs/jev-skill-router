@@ -48,3 +48,6 @@ Live, across a five-prompt session with two hard topic switches:
 - every expected skill routed (2.4–3.1s to first skill on the previously failing turns)
 - zero gate denials
 - the conversational control turn correctly routed nothing
+
+Since 2026-10-08 the session bench runs multi-turn sessions by default
+([running evals](../evaluation/running-evals.md#the-session-bench)).

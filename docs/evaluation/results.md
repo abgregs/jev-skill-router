@@ -39,7 +39,8 @@ What the scores look like:
 - **Small and single-turn.** One capture per fixture. Read it as evidence, not a benchmark.
 - **These grade the verdict, not the session.** Whether the model then loads and uses the
   skills was studied only in live sessions during development.
-- **No cost or speed savings claim.** Nothing here measures one.
+- **No cost or speed savings claim.** Nothing here measures one; the development run that
+  did found none ([below](#development-runs)).
 
 ## No-skill prompts: needless loads
 
@@ -98,14 +99,14 @@ parallel shards.
 ## Development runs
 
 Everything in [`bench/results/`](../../bench/results/README.md) and the findings marked
-*development finding* came from pre-release builds while the router was being built. They
-explain design decisions; they are not results for the released router.
+*development finding* has a session model in the loop: live sessions, A/B benches, and
+probes, on pre-release builds or the released bundles. They explain design decisions; they
+are not results for the released router, because the session model's compliance is part of
+what they measure ([the tiers](../findings/README.md)).
 
-One exception in provenance, not in tier: the 2026-10-08 multi-turn cost A/B ran the
-released `dist/hooks` bundles on opus, with a symmetric stop rule, so its cost and latency
-deltas are comparable. It stays development tier because the session model's compliance
-is part of the measurement. Its finding: the router is not a cost or latency saver. It hit
-18/18 expected skills to stock's 14/18 (the gap is the workflow skills opus skips unrouted),
-neither arm loaded a skill needlessly, and the router loaded 12k–40k more SKILL.md bytes
-and spent $0.05–$0.45 and 11–72s more per six-turn session. The public line is coverage
-and control, never savings.
+The 2026-10-08 multi-turn cost A/B ran the released `dist/hooks` bundles on opus with a
+symmetric stop rule, so its cost and latency deltas are comparable across arms. Its
+finding: the router is not a cost or latency saver. It hit 18/18 expected skills to stock's
+14/18 (the gap is the workflow skills opus skips unrouted), neither arm loaded a skill
+needlessly, and the router loaded 12k–40k more SKILL.md bytes and spent $0.05–$0.45 and
+11–72s more per six-turn session. The public line is coverage and control, never savings.

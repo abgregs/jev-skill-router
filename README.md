@@ -159,7 +159,7 @@ Full breakdown and caveats: [results](docs/evaluation/results.md).
 |---|---|---|
 | [0001](docs/findings/0001_hierarchies-read-from-descriptions.md) | Skill hierarchies are read from descriptions alone; skills sharing the ask co-invoke. | Recorded runs |
 | [0002](docs/findings/0002_co-invocation-improved-output.md) | Co-invoking overlapping skills improved output. | Development |
-| [0003](docs/findings/0003_invoke-is-a-command-suggest-is-a-menu.md) | Models follow invoke wholesale and consult suggest when needed. | Development |
+| [0003](docs/findings/0003_invoke-is-a-command-suggest-is-a-menu.md) | Models follow invoke wholesale, to a degree that varies by model, and consult suggest when needed. | Development |
 | [0004](docs/findings/0004_weight-current-request-over-transcript.md) | Weight the current request over the transcript; bench multi-turn. | Development |
 
 ## Development

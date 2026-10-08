@@ -57,8 +57,10 @@ the 255 `Choice` cap), plus a doctor probe sweep (catalog-health/overlap finding
 
 `fixtures/recordings/*.json`: real per-skill probability maps, ground truth, thresholds,
 judged counts, shard counts, and per-run latencies.
-`lib/doctor.ts` findings (overlap collisions, umbrella-skill intrusions). No customer
-quotes, benchmarks vs competitors, or adoption numbers exist — do not fabricate any.
+`lib/doctor.ts` findings (overlap collisions, umbrella-skill intrusions).
+`bench/results/`: development-tier A/B sessions against stock skill selection (the router
+covers more and costs more); never shown as a demo claim. No customer quotes, benchmarks
+vs competitors, or adoption numbers exist — do not fabricate any.
 
 ## Product Principles
 

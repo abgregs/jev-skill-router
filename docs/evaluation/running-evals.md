@@ -44,3 +44,24 @@ The recordings are the demo's entire data source. `npm run demo:data` replays ev
 through the real `route()` and policy code and writes `web/data/replays.json`; the page just
 renders it. No key, no API, deterministic: displayed latencies and shard counts are the
 capture's own, never faked.
+
+## The session bench
+
+`npm run bench:session` is the other harness: a paired A/B of real headless Claude Code
+sessions on the prompts in `fixtures/bench-sessions.ts`, one arm with the released hook
+bundles and one with none. Each arm is one multi-turn session (`--per-fixture` for one
+prompt per session), both arms launch together, and every turn runs to completion in both
+arms (the only stops are a per-turn step cap and timeout, applied identically), so cost,
+SKILL.md bytes loaded, and wall-clock are comparable across arms. Both arms route on a
+project `.skillrouter.json` of `{exclude: [brief, debrief]}`, the recorded catalog's
+definition.
+
+```bash
+npm run bench:session -- --dry-run
+npm run bench:session -- --reps 3 --model opus
+```
+
+Cost is real on both meters: one Noul per routed skill per router-arm turn, and every turn
+is a real session turn. Output lands in the gitignored `bench/session-results/`; keeper runs
+are promoted to [`bench/results/`](../../bench/results/README.md). A session model is in
+the loop, so these are development runs, never [results](results.md).

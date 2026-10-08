@@ -4,11 +4,11 @@ Curated snapshots of `npm run bench:session` output, promoted from the gitignore
 `bench/session-results/` scratch dir so the evidence travels with the repo.
 
 **Development runs.** Everything on this page, the manual smoke tests and probes included,
-was recorded on pre-release router builds while the router was being built, except the
-2026-10-01 cross-model probes and the 2026-10-08 multi-turn cost A/B, which ran the
-released router bundles. These runs
-explain design decisions; they are not results for the released router. The only claimed
-results are the recorded runs in docs/evaluation/results.md.
+has a session model in the loop, so it is development tier whichever build ran: most of it
+on pre-release builds while the router was being built, the 2026-10-01 cross-model probes
+and the 2026-10-08 multi-turn cost A/B on the released bundles. These runs explain design
+decisions; they are not claimed results. The only claimed results are the recorded runs in
+docs/evaluation/results.md.
 
 Token fields in the three September bench files (`tokensBeforeFirstSkill`, `outputTokens`
 and the other per-run usage counters) were summed from the stream's per-message usage,
