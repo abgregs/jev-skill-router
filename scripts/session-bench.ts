@@ -1,28 +1,36 @@
 // A/B benchmark: does the router hook get a REAL Claude Code session to the right
-// skills faster (and with less deliberation) than stock skill selection?
+// skills, and at what cost, compared with stock skill selection?
 //
 // Two scratch workspaces, identical except .claude/settings.json: one wires the
-// UserPromptSubmit router + PreToolUse gate, the other wires nothing. Both arms run
-// with --setting-sources project so the user's global hook wiring cannot contaminate
-// the no-router arm. For each fixture × rep, BOTH arms launch simultaneously (paired
-// design — same network weather), each as a headless `claude -p` whose stream-json
-// output is parsed live with client-side timestamps.
+// released router bundles (dist/hooks, exactly what the plugin ships), the other
+// wires nothing. Both arms run with --setting-sources project so the user's global
+// hook wiring cannot contaminate the no-router arm. Each arm is ONE headless
+// `claude -p` process in streaming-input mode that carries every fixture prompt as a
+// sequential user turn (the multi-turn session a real user has), or one fixture per
+// process with --per-fixture. Both arms of a rep launch simultaneously (paired design,
+// same network weather) and the stream-json output is parsed live.
 //
-// Per run we record: time to first Skill invocation, time to all expected skills,
-// invoked-vs-truth (hits / acceptable / junk), gate denials, assistant tokens emitted
-// before the first Skill call, and — router arm only — the hook's own verdict and
-// latency from its state file (the hook's cost is reported, not hidden).
+// Stop rule is SYMMETRIC: every turn runs to natural completion in both arms. The
+// only kills are a per-turn step cap and a per-turn timeout, applied identically, so
+// cost, duration and token totals are comparable across arms (the earlier
+// expected-satisfied early kill made them incomparable — see bench/results/README.md).
+//
+// Per turn we record: skill invocations vs curated truth (hits / acceptable / junk),
+// gate denials, SKILL.md bytes pulled into context, time to first Skill call, the
+// turn's own usage from its `result` event, and — router arm only — the hook's
+// verdict and timing from its state file (the hook's cost is reported, not hidden).
+// Per session: the cumulative cost from the last `result`, and any gate re-judges.
 //
 //   npm run bench:session -- --dry-run
-//   npm run bench:session -- --fixtures build-animation --reps 1 --model haiku
-//   npm run bench:session -- --reps 3 --model sonnet
+//   npm run bench:session -- --reps 3 --model opus
+//   npm run bench:session -- --per-fixture --fixtures build-animation --reps 1 --model haiku
 //
-// Cost is REAL on both meters: each router-arm run spends ~one Noul per judged skill
-// (every installed skill judged), and every run is a real Claude
-// session. Runs are capped by --max-turns and killed early once measurements land.
+// Cost is REAL on both meters: each router-arm turn spends one Noul per routed skill
+// (plus one per gate re-judge), and every turn is a real Claude session turn run to
+// completion.
 import { execFileSync, spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,6 +39,12 @@ import { loadSkills } from '../lib/skills/loadSkills.js'
 
 const ROUTER_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const STATE_DIR = join(tmpdir(), 'jev-skill-router')
+
+// Both arms route on the same catalog definition as the recorded runs
+// (docs/evaluation/results.md): shipped policy, with the two user-workflow skills
+// excluded. A project .skillrouter.json replaces ~/.skillrouter.json entirely for
+// both the router and the gate, so the user's personal config cannot leak in.
+const ARM_CONFIG = { exclude: ['brief', 'debrief'] }
 
 // Capture repo git SHA at run start for provenance (best-effort; null if not a git repo).
 function gitSha(): string | null {
@@ -46,54 +60,67 @@ type Arm = 'router' | 'no-router'
 interface SkillCall {
   skill: string
   toolUseId: string
-  /** ms from spawn to the assistant message carrying this tool_use. */
+  /** ms from the turn's start to the assistant message carrying this tool_use. */
   atMs: number
   denied: boolean
   deniedReason?: string
   resolved: boolean
+  /** Size of the skill's SKILL.md on disk; null when the id is not in the catalog. */
+  skillMdBytes: number | null
 }
 
-interface RunRecord {
+interface Usage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheCreationTokens: number
+}
+
+interface TurnRecord {
   fixture: string
-  arm: Arm
-  rep: number
-  sessionId: string | null
-  model: string | null
-  endedBy: 'completed' | 'expected-satisfied' | 'turn-cap' | 'timeout' | 'spawn-error'
+  turnIndex: number
+  endedBy: 'completed' | 'step-cap' | 'timeout' | 'not-run'
+  /** ms from session spawn to the turn's user message being sent. */
+  startedAtMs: number
   durationMs: number
-  spawnToInitMs: number | null
-  spawnToFirstAssistantMs: number | null
   firstSkillMs: number | null
-  /** ms until every expected skill had a non-denied invocation; null if never. */
-  allExpectedMs: number | null
   skillCalls: SkillCall[]
   hits: string[]
   missed: string[]
   acceptableInvoked: string[]
   junkInvoked: string[]
   deniedCount: number
-  assistantTurns: number
-  /** Full assistant output tokens in messages BEFORE the one carrying the first Skill call. */
-  tokensBeforeFirstSkill: number | null
-  /** Text chars preceding the first Skill tool_use inside its own message. */
-  charsBeforeFirstSkillInMessage: number | null
-  /** Router arm only: the hook's persisted verdict (includes its own latencyMs). */
+  /** SKILL.md bytes of every distinct skill loaded (non-denied) this turn. */
+  skillMdBytesLoaded: number
+  assistantMessages: number
+  /** The turn's own usage as reported by its `result` event (per-turn in streaming mode). */
+  usage: Usage | null
+  /** Cross-check: the same four counters summed over the turn's assistant messages. */
+  usageFromMessages: Usage | null
+  /** Cumulative session cost as of this turn's `result` (estimate, per Claude Code). */
+  costUsdCumulative: number | null
+  resultDurationMs: number | null
+  /** Router arm only: the hook's persisted verdict for this turn (includes latencyMs etc.). */
   hookVerdict: Record<string, unknown> | null
+  hookWallMs: number | null
+  routerCliMs: number | null
   /** No-router arm: true if a hook state file appeared anyway — arm contamination. */
   contaminated: boolean
+}
+
+interface SessionRecord {
+  arm: Arm
+  rep: number
+  sessionId: string | null
+  model: string | null
+  endedBy: 'completed' | 'step-cap' | 'timeout' | 'spawn-error'
+  durationMs: number
+  spawnToInitMs: number | null
+  turns: TurnRecord[]
   totalCostUsd: number | null
-  /** Aggregate input tokens across all assistant messages (always recorded, even on killed runs). */
-  inputTokens: number | null
-  /** Aggregate output tokens across all assistant messages (always recorded, even on killed runs). */
-  outputTokens: number | null
-  /** Aggregate cache_read_input_tokens across all assistant messages. */
-  cacheReadTokens: number | null
-  /** Aggregate cache_creation_input_tokens across all assistant messages. */
-  cacheCreationTokens: number | null
-  /** Hook wall-time from estimated process start to state-file write (router arm only). */
-  hookWallMs: number | null
-  /** Wall-time of the execFileSync call to route-cli.ts (router arm only). */
-  routerCliMs: number | null
+  skillMdBytesLoaded: number
+  /** Router arm: gate re-judge log entries ({ts, skill, p, allowed}). */
+  gateRejudges: unknown[]
   stderrTail: string
 }
 
@@ -120,13 +147,14 @@ function parseArgs(argv: string[]): { opts: Record<string, string>; bools: Set<s
 const { opts, bools } = parseArgs(process.argv.slice(2))
 const model = opts.model ?? 'sonnet'
 const reps = opts.reps ? Number(opts.reps) : 3
-const maxTurns = opts['max-turns'] ? Number(opts['max-turns']) : 4
-const timeoutMs = opts['timeout-ms']
-  ? Number(opts['timeout-ms'])
-  : (opts['timeout-sec'] ? Number(opts['timeout-sec']) : 240) * 1000
+/** Assistant messages allowed per user turn before the session is killed (symmetric safety cap). */
+const maxSteps = opts['max-steps'] ? Number(opts['max-steps']) : 40
+/** Wall-clock allowed per user turn (symmetric safety cap). */
+const turnTimeoutMs = (opts['timeout-sec'] ? Number(opts['timeout-sec']) : 600) * 1000
 const claudeBin = opts['claude-bin'] ?? 'claude'
 const workRoot = opts['work-root'] ?? join(tmpdir(), 'jev-session-bench')
 const outDir = resolve(ROUTER_DIR, opts.out ?? 'bench/session-results')
+const perFixture = bools.has('per-fixture')
 const allowedTools = ['Skill', 'Read', 'Glob', 'Grep', 'Write', 'Edit', 'TodoWrite', 'Bash(git:*)']
 
 const fixtureFilter = opts.fixtures?.split(',').map((x) => x.trim())
@@ -137,18 +165,20 @@ if (fixtures.length === 0) {
   console.error(`No matching fixtures. Available: ${BENCH_FIXTURES.map((f) => f.id).join(', ')}`)
   process.exit(1)
 }
+/** Each entry is one session's prompt series, in order. */
+const sessionPlans: BenchFixture[][] = perFixture ? fixtures.map((f) => [f]) : [fixtures]
 
 // ---------------------------------------------------------------------------
 // preflight — fail loud on anything that would silently bias an arm
 
 interface PreflightResult {
   notes: string[]
-  /** Human-readable degraded states (non-jev judge, missing skills) to stamp into meta. */
+  /** Human-readable degraded states (missing skills, unsized skills) to stamp into meta. */
   degraded: string[]
-  /** Judge name from ~/.skillrouter.json (or 'jev' if absent/unconfigured). */
-  judgeType: string
   installedSkillCount: number
   routableSkillCount: number
+  /** skill id → SKILL.md bytes, for the bytes-loaded metric (both arms, same catalog). */
+  skillMdBytes: Map<string, number>
 }
 
 function preflight(): PreflightResult {
@@ -167,26 +197,13 @@ function preflight(): PreflightResult {
     )
     process.exit(1)
   }
-
-  // The hook resolves ~/.skillrouter.json — record which judge the bench actually measures.
-  const homeCfg = join(homedir(), '.skillrouter.json')
-  let judgeType = 'jev'
-  if (existsSync(homeCfg)) {
-    try {
-      const cfg = JSON.parse(readFileSync(homeCfg, 'utf8'))
-      notes.push(`~/.skillrouter.json: ${JSON.stringify(cfg)}`)
-      judgeType = cfg.judge ?? 'jev'
-      if (judgeType !== 'jev') {
-        const msg = `~/.skillrouter.json judge=${judgeType} — benchmarking ${judgeType} judge, not Jev`
-        console.warn(`WARNING: ${msg}.`)
-        degraded.push(msg)
-      }
-    } catch {
-      const msg = '~/.skillrouter.json is unparseable; route-cli will fail loud on it'
-      console.warn(`WARNING: ${msg}.`)
-      degraded.push(msg)
+  for (const b of ['user-prompt-submit.mjs', 'pre-tool-use-gate.mjs']) {
+    if (!existsSync(join(ROUTER_DIR, 'dist', 'hooks', b))) {
+      console.error(`dist/hooks/${b} is missing — run \`npm run build\`; the bench wires the released bundles.`)
+      process.exit(1)
     }
-  } else notes.push('~/.skillrouter.json: absent (router defaults, judge=jev)')
+  }
+  notes.push(`arm config (.skillrouter.json in both arms): ${JSON.stringify(ARM_CONFIG)}`)
 
   // Expected ids must exist as installed Claude skills or hits are impossible.
   const claudeSkills = new Set(
@@ -204,9 +221,18 @@ function preflight(): PreflightResult {
   notes.push(`installed ~/.claude/skills: ${installedSkillCount}`)
   // Dir count ≠ judged count: the router only judges skills loadSkills() can route on
   // (a SKILL.md with a frontmatter description) — record the number Nouls are billed for.
-  const routableSkillCount = loadSkills().length
-  notes.push(`routable skills (loadSkills): ${routableSkillCount}`)
-  return { notes, degraded, judgeType, installedSkillCount, routableSkillCount }
+  const skills = loadSkills()
+  const routableSkillCount = skills.length - ARM_CONFIG.exclude.filter((id) => skills.some((s) => s.id === id)).length
+  notes.push(`routable skills (loadSkills minus exclude): ${routableSkillCount}`)
+  const skillMdBytes = new Map<string, number>()
+  for (const s of skills) {
+    try {
+      skillMdBytes.set(s.id, statSync(s.source).size)
+    } catch {
+      degraded.push(`${s.id}: SKILL.md unreadable at ${s.source} — bytes-loaded metric will skip it`)
+    }
+  }
+  return { notes, degraded, installedSkillCount, routableSkillCount, skillMdBytes }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +245,7 @@ function armDir(arm: Arm): string {
 // Every fixture prompt references project state (a toast component, staged changes, a
 // Swift module). An EMPTY workspace makes the model hunt for missing files instead of
 // invoking skills — so both arms get the SAME tiny stub project, reset before every
-// paired run so one rep's writes cannot leak into the next.
+// paired session so one rep's writes cannot leak into the next.
 const STUB_FILES: Record<string, string> = {
   'README.md': '# demo-app\n\nSmall app used for the jev-skill-router recorded demo work.\n',
   'package.json': JSON.stringify({ name: 'demo-app', version: '0.1.0', private: true }, null, 2),
@@ -298,15 +324,15 @@ function git(dir: string, ...args: string[]): void {
 }
 
 function resetWorkspace(arm: Arm): void {
-  const tsxBin = join(ROUTER_DIR, 'node_modules', '.bin', 'tsx')
-  const hookCmd = (script: string) => `${tsxBin} ${join(ROUTER_DIR, 'hooks', script)}`
+  // The released bundles, wired exactly as hooks/hooks.json wires them for the plugin.
+  const hookCmd = (bundle: string) => `node "${join(ROUTER_DIR, 'dist', 'hooks', bundle)}"`
   const settings =
     arm === 'router'
       ? {
           hooks: {
-            UserPromptSubmit: [{ hooks: [{ type: 'command', command: hookCmd('user-prompt-submit.ts') }] }],
+            UserPromptSubmit: [{ hooks: [{ type: 'command', command: hookCmd('user-prompt-submit.mjs') }] }],
             PreToolUse: [
-              { matcher: 'Skill', hooks: [{ type: 'command', command: hookCmd('pre-tool-use-gate.ts') }] }
+              { matcher: 'Skill', hooks: [{ type: 'command', command: hookCmd('pre-tool-use-gate.mjs') }] }
             ]
           }
         }
@@ -315,6 +341,7 @@ function resetWorkspace(arm: Arm): void {
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(join(dir, '.claude'), { recursive: true })
   writeFileSync(join(dir, '.claude', 'settings.json'), JSON.stringify(settings, null, 2))
+  writeFileSync(join(dir, '.skillrouter.json'), JSON.stringify(ARM_CONFIG, null, 2))
   // --setting-sources project drops USER-level skills, so give both arms the user's
   // catalog as PROJECT skills (symlink — identical bytes, no per-reset copy cost).
   symlinkSync(join(homedir(), '.claude', 'skills'), join(dir, '.claude', 'skills'))
@@ -332,13 +359,58 @@ function resetWorkspace(arm: Arm): void {
 }
 
 // ---------------------------------------------------------------------------
-// one headless session
+// one headless session carrying a series of user turns
 
-function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord> {
+function emptyUsage(): Usage {
+  return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }
+}
+
+function usageOf(u: any): Usage | null {
+  if (!u || typeof u !== 'object') return null
+  return {
+    inputTokens: u.input_tokens ?? 0,
+    outputTokens: u.output_tokens ?? 0,
+    cacheReadTokens: u.cache_read_input_tokens ?? 0,
+    cacheCreationTokens: u.cache_creation_input_tokens ?? 0
+  }
+}
+
+function newTurn(fixture: BenchFixture, turnIndex: number, startedAtMs: number): TurnRecord {
+  return {
+    fixture: fixture.id,
+    turnIndex,
+    endedBy: 'not-run',
+    startedAtMs,
+    durationMs: 0,
+    firstSkillMs: null,
+    skillCalls: [],
+    hits: [],
+    missed: [],
+    acceptableInvoked: [],
+    junkInvoked: [],
+    deniedCount: 0,
+    skillMdBytesLoaded: 0,
+    assistantMessages: 0,
+    usage: null,
+    usageFromMessages: null,
+    costUsdCumulative: null,
+    resultDurationMs: null,
+    hookVerdict: null,
+    hookWallMs: null,
+    routerCliMs: null,
+    contaminated: false
+  }
+}
+
+function runSession(
+  plan: BenchFixture[],
+  arm: Arm,
+  rep: number,
+  skillMdBytes: Map<string, number>
+): Promise<SessionRecord> {
   return new Promise((resolvePromise) => {
     const t0 = Date.now()
-    const rec: RunRecord = {
-      fixture: fixture.id,
+    const rec: SessionRecord = {
       arm,
       rep,
       sessionId: null,
@@ -346,27 +418,10 @@ function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord
       endedBy: 'completed',
       durationMs: 0,
       spawnToInitMs: null,
-      spawnToFirstAssistantMs: null,
-      firstSkillMs: null,
-      allExpectedMs: null,
-      skillCalls: [],
-      hits: [],
-      missed: [],
-      acceptableInvoked: [],
-      junkInvoked: [],
-      deniedCount: 0,
-      assistantTurns: 0,
-      tokensBeforeFirstSkill: null,
-      charsBeforeFirstSkillInMessage: null,
-      hookVerdict: null,
-      contaminated: false,
+      turns: plan.map((f, i) => newTurn(f, i, 0)),
       totalCostUsd: null,
-      inputTokens: null,
-      outputTokens: null,
-      cacheReadTokens: null,
-      cacheCreationTokens: null,
-      hookWallMs: null,
-      routerCliMs: null,
+      skillMdBytesLoaded: 0,
+      gateRejudges: [],
       stderrTail: ''
     }
 
@@ -374,7 +429,8 @@ function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord
       claudeBin,
       [
         '-p',
-        fixture.prompt,
+        '--input-format',
+        'stream-json',
         '--output-format',
         'stream-json',
         '--verbose',
@@ -386,32 +442,94 @@ function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord
         '--allowedTools',
         allowedTools.join(',')
       ],
-      { cwd: armDir(arm), env: process.env, stdio: ['ignore', 'pipe', 'pipe'] }
+      { cwd: armDir(arm), env: process.env, stdio: ['pipe', 'pipe', 'pipe'] }
     )
 
     let killed = false
+    let turnIdx = -1
+    let turnT0 = 0
+    let turnTimer: NodeJS.Timeout | null = null
     // stream-json emits one assistant event PER CONTENT BLOCK; a real API turn is the
-    // set of events sharing message.id. Count turns and tokens per id, not per event.
-    const msgTokens = new Map<string, number>() // message.id → last-seen output_tokens
-    const msgInputTokens = new Map<string, number>() // message.id → last-seen input_tokens
-    const msgCacheReadTokens = new Map<string, number>() // message.id → last-seen cache_read_input_tokens
-    const msgCacheCreationTokens = new Map<string, number>() // message.id → last-seen cache_creation_input_tokens
-    const msgChars = new Map<string, number>() // message.id → text chars streamed so far
+    // set of events sharing message.id. Count steps and tokens per id, not per event.
+    let msgUsage = new Map<string, Usage>() // message.id → last-seen usage (this user turn)
     const pending = new Map<string, SkillCall>() // toolUseId → call awaiting its result
-    const kill = (why: RunRecord['endedBy']) => {
+
+    const kill = (why: 'step-cap' | 'timeout') => {
       if (killed) return
       killed = true
       rec.endedBy = why
+      const t = rec.turns[turnIdx]
+      if (t) t.endedBy = why
+      child.stdin.end()
       child.kill('SIGTERM')
       setTimeout(() => child.kill('SIGKILL'), 5000).unref()
     }
-    const timer = setTimeout(() => kill('timeout'), timeoutMs)
 
-    const expectedSatisfied = () =>
-      fixture.expected.length > 0 &&
-      fixture.expected.every((id) =>
-        rec.skillCalls.some((c) => c.skill === id && c.resolved && !c.denied)
+    const sendTurn = () => {
+      turnIdx++
+      const fixture = plan[turnIdx]!
+      turnT0 = Date.now()
+      const turn = rec.turns[turnIdx]!
+      turn.startedAtMs = turnT0 - t0
+      msgUsage = new Map()
+      if (turnTimer) clearTimeout(turnTimer)
+      turnTimer = setTimeout(() => kill('timeout'), turnTimeoutMs)
+      child.stdin.write(
+        JSON.stringify({
+          type: 'user',
+          message: { role: 'user', content: [{ type: 'text', text: fixture.prompt }] }
+        }) + '\n'
       )
+    }
+
+    const closeTurn = (e: any) => {
+      const turn = rec.turns[turnIdx]!
+      const fixture = plan[turnIdx]!
+      if (turnTimer) clearTimeout(turnTimer)
+      turn.endedBy = 'completed'
+      turn.durationMs = Date.now() - turnT0
+      turn.usage = usageOf(e.usage)
+      turn.costUsdCumulative = typeof e.total_cost_usd === 'number' ? e.total_cost_usd : null
+      turn.resultDurationMs = typeof e.duration_ms === 'number' ? e.duration_ms : null
+      if (msgUsage.size > 0) {
+        const sum = emptyUsage()
+        for (const u of msgUsage.values()) {
+          sum.inputTokens += u.inputTokens
+          sum.outputTokens += u.outputTokens
+          sum.cacheReadTokens += u.cacheReadTokens
+          sum.cacheCreationTokens += u.cacheCreationTokens
+        }
+        turn.usageFromMessages = sum
+      }
+      // Score invocations against curated truth. A denied call is not a hit.
+      const invoked = new Set(turn.skillCalls.filter((c) => !c.denied).map((c) => c.skill))
+      turn.hits = fixture.expected.filter((id) => invoked.has(id))
+      turn.missed = fixture.expected.filter((id) => !invoked.has(id))
+      turn.acceptableInvoked = [...invoked].filter((id) => fixture.acceptable.includes(id))
+      turn.junkInvoked = [...invoked].filter(
+        (id) => !fixture.expected.includes(id) && !fixture.acceptable.includes(id)
+      )
+      for (const id of invoked) turn.skillMdBytesLoaded += skillMdBytes.get(id) ?? 0
+      // The hook rewrites turn-<session>.json at the start of every user turn, so at
+      // this turn's result it holds this turn's verdict. Snapshot it before the next turn.
+      if (rec.sessionId) {
+        const statePath = join(STATE_DIR, `turn-${rec.sessionId}.json`)
+        if (existsSync(statePath)) {
+          try {
+            const verdict = JSON.parse(readFileSync(statePath, 'utf8'))
+            if (arm === 'router') {
+              turn.hookVerdict = verdict
+              if (typeof verdict.hookWallMs === 'number') turn.hookWallMs = verdict.hookWallMs
+              if (typeof verdict.routerCliMs === 'number') turn.routerCliMs = verdict.routerCliMs
+            } else turn.contaminated = true
+          } catch {
+            /* unreadable state — leave nulls */
+          }
+        }
+      }
+      if (turnIdx + 1 < plan.length) sendTurn()
+      else child.stdin.end()
+    }
 
     child.stderr.on('data', (d: Buffer) => {
       rec.stderrTail = (rec.stderrTail + d.toString()).slice(-2000)
@@ -423,63 +541,61 @@ function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord
 
     const rl = createInterface({ input: child.stdout })
     rl.on('line', (line) => {
-      const now = Date.now() - t0
       let e: any
       try {
         e = JSON.parse(line)
       } catch {
         return
       }
+      const turn = rec.turns[turnIdx]
+      const now = Date.now() - turnT0
 
+      // Streaming-input mode emits an init event per user turn; keep the first timing.
       if (e.type === 'system' && e.subtype === 'init') {
         rec.sessionId = e.session_id ?? null
         rec.model = e.model ?? null
-        rec.spawnToInitMs = now
+        if (rec.spawnToInitMs === null) rec.spawnToInitMs = Date.now() - t0
         return
       }
+      if (!turn) return
 
       if (e.type === 'assistant' && e.message) {
-        if (rec.spawnToFirstAssistantMs === null) rec.spawnToFirstAssistantMs = now
-        const msgId: string = e.message.id ?? `anon-${rec.assistantTurns}`
-        if (!msgTokens.has(msgId)) {
-          rec.assistantTurns++
-          msgTokens.set(msgId, 0)
-          msgInputTokens.set(msgId, 0)
-          msgCacheReadTokens.set(msgId, 0)
-          msgCacheCreationTokens.set(msgId, 0)
-          msgChars.set(msgId, 0)
-          if (rec.assistantTurns > maxTurns) {
-            kill('turn-cap')
+        const msgId: string = e.message.id ?? `anon-${turn.assistantMessages}`
+        if (!msgUsage.has(msgId)) {
+          turn.assistantMessages++
+          msgUsage.set(msgId, emptyUsage())
+          if (turn.assistantMessages > maxSteps) {
+            kill('step-cap')
             return
           }
         }
         const content: any[] = Array.isArray(e.message.content) ? e.message.content : []
         for (const block of content) {
-          if (block.type === 'text') msgChars.set(msgId, msgChars.get(msgId)! + (block.text ?? '').length)
           if (block.type === 'tool_use' && block.name === 'Skill') {
             const skill = String(block.input?.skill ?? block.input?.command ?? '')
-            if (rec.firstSkillMs === null) {
-              rec.firstSkillMs = now
-              // Tokens of every PRIOR message + text streamed earlier in this one.
-              let before = 0
-              for (const [id, tok] of msgTokens) if (id !== msgId) before += tok
-              rec.tokensBeforeFirstSkill = before
-              rec.charsBeforeFirstSkillInMessage = msgChars.get(msgId)!
+            if (turn.firstSkillMs === null) turn.firstSkillMs = now
+            const call: SkillCall = {
+              skill,
+              toolUseId: block.id,
+              atMs: now,
+              denied: false,
+              resolved: false,
+              skillMdBytes: skillMdBytes.get(skill) ?? null
             }
-            const call: SkillCall = { skill, toolUseId: block.id, atMs: now, denied: false, resolved: false }
-            rec.skillCalls.push(call)
+            turn.skillCalls.push(call)
             pending.set(block.id, call)
           }
         }
-        const usage = e.message.usage
-        const tok = usage?.output_tokens
-        if (typeof tok === 'number' && tok > msgTokens.get(msgId)!) msgTokens.set(msgId, tok)
-        const inTok = usage?.input_tokens
-        if (typeof inTok === 'number' && inTok > msgInputTokens.get(msgId)!) msgInputTokens.set(msgId, inTok)
-        const crTok = usage?.cache_read_input_tokens
-        if (typeof crTok === 'number' && crTok > msgCacheReadTokens.get(msgId)!) msgCacheReadTokens.set(msgId, crTok)
-        const ccTok = usage?.cache_creation_input_tokens
-        if (typeof ccTok === 'number' && ccTok > msgCacheCreationTokens.get(msgId)!) msgCacheCreationTokens.set(msgId, ccTok)
+        const u = usageOf(e.message.usage)
+        if (u) {
+          const prev = msgUsage.get(msgId)!
+          msgUsage.set(msgId, {
+            inputTokens: Math.max(prev.inputTokens, u.inputTokens),
+            outputTokens: Math.max(prev.outputTokens, u.outputTokens),
+            cacheReadTokens: Math.max(prev.cacheReadTokens, u.cacheReadTokens),
+            cacheCreationTokens: Math.max(prev.cacheCreationTokens, u.cacheCreationTokens)
+          })
+        }
         return
       }
 
@@ -498,66 +614,42 @@ function runOne(fixture: BenchFixture, arm: Arm, rep: number): Promise<RunRecord
           if (block.is_error || text.includes('Skill routing gate:')) {
             call.denied = true
             call.deniedReason = text.slice(0, 200)
-            rec.deniedCount++
+            turn.deniedCount++
           }
           pending.delete(block.tool_use_id)
-        }
-        if (expectedSatisfied()) {
-          if (rec.allExpectedMs === null) rec.allExpectedMs = now
-          kill('expected-satisfied')
         }
         return
       }
 
-      if (e.type === 'result') {
-        rec.totalCostUsd = e.total_cost_usd ?? null
-        // natural completion — endedBy stays 'completed' unless already killed
-      }
+      // Streaming-input mode: one `result` per user turn — the turn boundary.
+      if (e.type === 'result' && !killed) closeTurn(e)
     })
 
     const finish = () => {
-      clearTimeout(timer)
+      if (turnTimer) clearTimeout(turnTimer)
       rec.durationMs = Date.now() - t0
-      if (rec.allExpectedMs === null && expectedSatisfied())
-        rec.allExpectedMs = Math.max(...rec.skillCalls.filter((c) => !c.denied).map((c) => c.atMs))
-
-      // Aggregate token counts across all assistant messages (always, even on killed runs).
-      if (msgTokens.size > 0) {
-        rec.outputTokens = [...msgTokens.values()].reduce((a, b) => a + b, 0)
-        rec.inputTokens = [...msgInputTokens.values()].reduce((a, b) => a + b, 0)
-        rec.cacheReadTokens = [...msgCacheReadTokens.values()].reduce((a, b) => a + b, 0)
-        rec.cacheCreationTokens = [...msgCacheCreationTokens.values()].reduce((a, b) => a + b, 0)
-      }
-
-      // Score invocations against curated truth. A denied call is not a hit.
-      const invoked = new Set(rec.skillCalls.filter((c) => !c.denied).map((c) => c.skill))
-      rec.hits = fixture.expected.filter((id) => invoked.has(id))
-      rec.missed = fixture.expected.filter((id) => !invoked.has(id))
-      rec.acceptableInvoked = [...invoked].filter((id) => fixture.acceptable.includes(id))
-      rec.junkInvoked = [...invoked].filter(
-        (id) => !fixture.expected.includes(id) && !fixture.acceptable.includes(id)
-      )
-
-      // Hook verdict (router arm) / contamination check (no-router arm).
-      // Also extract hookWallMs and routerCliMs from state file (Fix C).
-      if (rec.sessionId) {
-        const statePath = join(STATE_DIR, `turn-${rec.sessionId}.json`)
-        if (existsSync(statePath)) {
-          try {
-            const verdict = JSON.parse(readFileSync(statePath, 'utf8'))
-            if (arm === 'router') {
-              rec.hookVerdict = verdict
-              if (typeof verdict.hookWallMs === 'number') rec.hookWallMs = verdict.hookWallMs
-              if (typeof verdict.routerCliMs === 'number') rec.routerCliMs = verdict.routerCliMs
-            } else rec.contaminated = true
-          } catch {
-            /* unreadable state — leave nulls */
-          }
+      const last = [...rec.turns].reverse().find((t) => t.costUsdCumulative !== null)
+      rec.totalCostUsd = last ? last.costUsdCumulative : null
+      rec.skillMdBytesLoaded = rec.turns.reduce((a, t) => a + t.skillMdBytesLoaded, 0)
+      if (arm === 'router' && rec.sessionId) {
+        const logPath = join(STATE_DIR, `gate-${rec.sessionId}.jsonl`)
+        if (existsSync(logPath)) {
+          rec.gateRejudges = readFileSync(logPath, 'utf8')
+            .split('\n')
+            .filter(Boolean)
+            .map((l) => {
+              try {
+                return JSON.parse(l)
+              } catch {
+                return { raw: l }
+              }
+            })
         }
       }
       resolvePromise(rec)
     }
     child.on('close', finish)
+    sendTurn()
   })
 }
 
@@ -574,90 +666,97 @@ function fmtMs(ms: number | null): string {
   return ms === null ? '—' : `${(ms / 1000).toFixed(1)}s`
 }
 
-function fmtDist(xs: number[]): string {
+function fmtDist(xs: number[], fmt: (x: number | null) => string = fmtMs): string {
   const m = median(xs)
   if (m === null) return '—'
-  const lo = Math.min(...xs)
-  const hi = Math.max(...xs)
-  return `${fmtMs(m)} (${fmtMs(lo)}–${fmtMs(hi)})`
+  return `${fmt(m)} (${fmt(Math.min(...xs))}–${fmt(Math.max(...xs))})`
 }
 
-function summarize(runs: RunRecord[]): void {
+const fmtK = (n: number | null) => (n === null ? '—' : `${(n / 1000).toFixed(1)}k`)
+const fmtUsd = (n: number | null) => (n === null ? '—' : `$${n.toFixed(3)}`)
+
+function summarize(sessions: SessionRecord[]): void {
   console.log('\n================= SESSION BENCH SUMMARY =================')
-  console.log(`model=${model} · reps=${reps} · max-turns=${maxTurns} · paired launches\n`)
+  console.log(
+    `model=${model} · reps=${reps} · ${perFixture ? 'one fixture per session' : `${fixtures.length}-turn sessions`}` +
+      ` · symmetric stop (step-cap ${maxSteps}, turn timeout ${turnTimeoutMs / 1000}s) · paired launches\n`
+  )
+  const turnsOf = (arm: Arm, id: string) =>
+    sessions.flatMap((s) => s.turns.filter((t) => s.arm === arm && t.fixture === id && t.endedBy === 'completed'))
   for (const f of fixtures) {
     console.log(`${f.id}${f.negativeControl ? '  [negative control — correct outcome: no skills]' : ''}`)
     console.log(`  expected: [${f.expected.join(', ') || 'none'}]`)
     for (const arm of ['no-router', 'router'] as Arm[]) {
-      const rs = runs.filter((r) => r.fixture === f.id && r.arm === arm && r.endedBy !== 'spawn-error')
-      if (rs.length === 0) {
-        console.log(`  ${arm.padEnd(10)} no valid runs`)
+      const ts = turnsOf(arm, f.id)
+      if (ts.length === 0) {
+        console.log(`  ${arm.padEnd(10)} no completed turns`)
         continue
       }
-      const firstSkill = rs.filter((r) => r.firstSkillMs !== null).map((r) => r.firstSkillMs!)
-      const allExp = rs.filter((r) => r.allExpectedMs !== null).map((r) => r.allExpectedMs!)
       const hitRate =
-        f.expected.length === 0
-          ? null
-          : rs.reduce((a, r) => a + r.hits.length, 0) / (rs.length * f.expected.length)
-      const junk = rs.reduce((a, r) => a + r.junkInvoked.length, 0)
-      const denied = rs.reduce((a, r) => a + r.deniedCount, 0)
-      const tokens = rs.filter((r) => r.tokensBeforeFirstSkill !== null).map((r) => r.tokensBeforeFirstSkill!)
-      const gap = rs.filter((r) => r.spawnToFirstAssistantMs !== null).map((r) => r.spawnToFirstAssistantMs!)
-      const hookLat = rs
-        .map((r) => (typeof r.hookVerdict?.latencyMs === 'number' ? (r.hookVerdict.latencyMs as number) : null))
-        .filter((x): x is number => x !== null)
-      const hookWall = rs.filter((r) => r.hookWallMs !== null).map((r) => r.hookWallMs!)
+        f.expected.length === 0 ? null : ts.reduce((a, t) => a + t.hits.length, 0) / (ts.length * f.expected.length)
+      const junk = ts.reduce((a, t) => a + t.junkInvoked.length, 0)
+      const denied = ts.reduce((a, t) => a + t.deniedCount, 0)
+      const firstSkill = ts.filter((t) => t.firstSkillMs !== null).map((t) => t.firstSkillMs!)
+      const bytes = ts.map((t) => t.skillMdBytesLoaded)
+      const outTok = ts.filter((t) => t.usage).map((t) => t.usage!.outputTokens)
+      const inTok = ts.filter((t) => t.usage).map((t) => t.usage!.inputTokens + t.usage!.cacheReadTokens + t.usage!.cacheCreationTokens)
+      const dur = ts.map((t) => t.durationMs)
+      const hookWall = ts.filter((t) => t.hookWallMs !== null).map((t) => t.hookWallMs!)
       const cols = [
-        `n=${rs.length}`,
-        `first-skill ${fmtDist(firstSkill)}`,
-        f.expected.length > 0 ? `all-expected ${fmtDist(allExp)} [${allExp.length}/${rs.length} runs]` : null,
+        `n=${ts.length}`,
         hitRate === null ? null : `hits ${(hitRate * 100).toFixed(0)}%`,
         `junk ${junk}`,
         denied > 0 ? `gate-denied ${denied}` : null,
-        `pre-skill-tokens ${median(tokens) ?? '—'}`,
-        `spawn→assistant ${fmtDist(gap)}`,
-        // Relabeled: this is the jev-network self-report only, NOT the full hook cost.
-        hookLat.length > 0 ? `hook-jev-network-latency(self-report) ${fmtDist(hookLat)}` : null,
-        hookWall.length > 0 ? `hook-wall(process-start→write) ${fmtDist(hookWall)}` : null
+        `first-skill ${fmtDist(firstSkill)}`,
+        `skill-md-bytes ${fmtDist(bytes, fmtK)}`,
+        `turn ${fmtDist(dur)}`,
+        `out-tok ${fmtDist(outTok, fmtK)}`,
+        `in-tok(all) ${fmtDist(inTok, fmtK)}`,
+        hookWall.length > 0 ? `hook-wall ${fmtDist(hookWall)}` : null
       ].filter(Boolean)
       console.log(`  ${arm.padEnd(10)} ${cols.join(' · ')}`)
       if (f.negativeControl) {
-        const invokedRuns = rs.filter((r) => r.skillCalls.some((c) => !c.denied)).length
-        console.log(`  ${''.padEnd(10)} abstained in ${rs.length - invokedRuns}/${rs.length} runs`)
+        const invokedTurns = ts.filter((t) => t.skillCalls.some((c) => !c.denied)).length
+        console.log(`  ${''.padEnd(10)} abstained in ${ts.length - invokedTurns}/${ts.length} turns`)
       }
-    }
-
-    // Hook overhead as paired delta: router spawnToInitMs minus no-router spawnToInitMs
-    // gives the externally-observable cost of the hook per fixture.
-    const routerInits = runs
-      .filter((r) => r.fixture === f.id && r.arm === 'router' && r.spawnToInitMs !== null)
-      .map((r) => r.spawnToInitMs!)
-    const noRouterInits = runs
-      .filter((r) => r.fixture === f.id && r.arm === 'no-router' && r.spawnToInitMs !== null)
-      .map((r) => r.spawnToInitMs!)
-    if (routerInits.length > 0 && noRouterInits.length > 0) {
-      // Pair by rep order (both arrays are populated in the same rep order).
-      const deltas = routerInits
-        .slice(0, Math.min(routerInits.length, noRouterInits.length))
-        .map((v, i) => v - noRouterInits[i]!)
-        .filter((d) => isFinite(d))
-      if (deltas.length > 0)
-        console.log(`  hook-overhead(spawnToInit router-minus-no-router) ${fmtDist(deltas)}`)
     }
     console.log()
   }
-  const contaminated = runs.filter((r) => r.contaminated)
+
+  console.log('per session (paired by rep; delta = router − no-router)')
+  for (let rep = 1; rep <= reps; rep++) {
+    for (let i = 0; i < sessionPlans.length; i++) {
+      const pair = ['no-router', 'router'].map((arm) =>
+        sessions.find((s) => s.arm === arm && s.rep === rep && s.turns[0]?.fixture === sessionPlans[i]![0]!.id)
+      )
+      const [a, b] = pair
+      if (!a || !b) continue
+      const line = (s: SessionRecord) =>
+        `${s.arm.padEnd(10)} ${s.endedBy.padEnd(9)} cost ${fmtUsd(s.totalCostUsd)} · skill-md-bytes ${fmtK(s.skillMdBytesLoaded)}` +
+        ` · wall ${fmtMs(s.durationMs)} · turns ${s.turns.filter((t) => t.endedBy === 'completed').length}/${s.turns.length}` +
+        (s.arm === 'router' && s.gateRejudges.length ? ` · gate-rejudges ${s.gateRejudges.length}` : '')
+      console.log(`  rep ${rep}${perFixture ? ` ${sessionPlans[i]![0]!.id}` : ''}`)
+      console.log(`    ${line(a)}\n    ${line(b)}`)
+      if (a.totalCostUsd !== null && b.totalCostUsd !== null)
+        console.log(
+          `    delta      cost ${fmtUsd(b.totalCostUsd - a.totalCostUsd)} · skill-md-bytes ${fmtK(b.skillMdBytesLoaded - a.skillMdBytesLoaded)}` +
+            ` · wall ${fmtMs(b.durationMs - a.durationMs)}`
+        )
+    }
+  }
+
+  const contaminated = sessions.flatMap((s) => s.turns.filter((t) => t.contaminated).map((t) => `${s.arm}#${s.rep}/${t.fixture}`))
   if (contaminated.length > 0)
+    console.error(`CONTAMINATION: no-router turn(s) show a hook state file — results invalid: ${contaminated.join(', ')}`)
+  const silent = sessions.flatMap((s) =>
+    s.arm === 'router' ? s.turns.filter((t) => t.endedBy === 'completed' && !t.hookVerdict).map((t) => `#${s.rep}/${t.fixture}`) : []
+  )
+  if (silent.length > 0)
+    console.error(`HOOK SILENT: router turn(s) produced no verdict state (hook failed silently): ${silent.join(', ')}`)
+  const truncated = sessions.filter((s) => s.endedBy !== 'completed')
+  if (truncated.length > 0)
     console.error(
-      `CONTAMINATION: ${contaminated.length} no-router run(s) show a hook state file — results invalid: ` +
-        contaminated.map((r) => `${r.fixture}#${r.rep}`).join(', ')
-    )
-  const routerNoVerdict = runs.filter((r) => r.arm === 'router' && r.endedBy !== 'spawn-error' && !r.hookVerdict)
-  if (routerNoVerdict.length > 0)
-    console.error(
-      `HOOK SILENT: ${routerNoVerdict.length} router run(s) produced no verdict state (hook failed silently): ` +
-        routerNoVerdict.map((r) => `${r.fixture}#${r.rep}`).join(', ')
+      `TRUNCATED: ${truncated.map((s) => `${s.arm}#${s.rep} (${s.endedBy})`).join(', ')} — session totals for these pairs are not comparable`
     )
 }
 
@@ -665,14 +764,14 @@ function summarize(runs: RunRecord[]): void {
 // main
 
 const repoGitSha = gitSha()
-const preflight_ = preflight()
-const { notes, degraded, judgeType, installedSkillCount, routableSkillCount } = preflight_
+const { notes, degraded, installedSkillCount, routableSkillCount, skillMdBytes } = preflight()
 console.log('session-bench preflight:')
 for (const n of notes) console.log(`  ${n}`)
-const totalRuns = fixtures.length * reps * 2
+const totalSessions = sessionPlans.length * reps * 2
+const totalTurns = fixtures.length * reps * 2
 console.log(
-  `\nPlan: ${fixtures.length} fixtures × ${reps} reps × 2 arms = ${totalRuns} headless sessions (model=${model}).` +
-    `\nRouter-arm Noul cost ≈ ${fixtures.length * reps} runs × one Noul per installed skill (see preflight count).\n`
+  `\nPlan: ${sessionPlans.length} session(s) × ${reps} reps × 2 arms = ${totalSessions} headless sessions, ${totalTurns} turns (model=${model}).` +
+    `\nRouter-arm Noul cost ≈ ${fixtures.length * reps} turns × ${routableSkillCount} routed skills, plus gate re-judges.\n`
 )
 if (bools.has('dry-run')) {
   for (const f of fixtures) console.log(`  ${f.id}: "${f.prompt.slice(0, 80)}..."`)
@@ -680,18 +779,26 @@ if (bools.has('dry-run')) {
   process.exit(0)
 }
 
-const runs: RunRecord[] = []
+const sessions: SessionRecord[] = []
 for (let rep = 1; rep <= reps; rep++) {
-  for (const fixture of fixtures) {
+  for (const plan of sessionPlans) {
     resetWorkspace('router')
     resetWorkspace('no-router')
-    process.stdout.write(`[rep ${rep}/${reps}] ${fixture.id} … `)
-    const [a, b] = await Promise.all([runOne(fixture, 'no-router', rep), runOne(fixture, 'router', rep)])
-    runs.push(a, b)
-    const brief = (r: RunRecord) =>
-      `${r.arm}: first-skill ${fmtMs(r.firstSkillMs)}, hits ${r.hits.length}/${fixture.expected.length}` +
-      `${r.junkInvoked.length ? `, junk ${r.junkInvoked.join('/')}` : ''}` +
-      `${r.deniedCount ? `, denied ${r.deniedCount}` : ''} (${r.endedBy})`
+    process.stdout.write(`[rep ${rep}/${reps}] ${plan.map((f) => f.id).join(' → ')} … `)
+    const [a, b] = await Promise.all([
+      runSession(plan, 'no-router', rep, skillMdBytes),
+      runSession(plan, 'router', rep, skillMdBytes)
+    ])
+    sessions.push(a, b)
+    const brief = (s: SessionRecord) =>
+      `${s.arm}: ` +
+      s.turns
+        .map((t) => {
+          const f = plan[t.turnIndex]!
+          return `${t.fixture} ${t.hits.length}/${f.expected.length}${t.junkInvoked.length ? ` junk ${t.junkInvoked.join('/')}` : ''}${t.deniedCount ? ` denied ${t.deniedCount}` : ''}`
+        })
+        .join(' | ') +
+      ` (${s.endedBy}, ${fmtUsd(s.totalCostUsd)}, ${fmtMs(s.durationMs)})`
     console.log(`\n    ${brief(a)}\n    ${brief(b)}`)
   }
 }
@@ -707,22 +814,24 @@ writeFileSync(
         date: new Date().toISOString(),
         model,
         reps,
-        maxTurns,
+        mode: perFixture ? 'per-fixture' : 'multi-turn',
+        stopRule: { symmetric: true, maxSteps, turnTimeoutMs },
+        hooks: 'dist/hooks (released bundles)',
+        armConfig: ARM_CONFIG,
         allowedTools,
         settingSources: 'project',
         gitSha: repoGitSha,
-        judgeType,
         installedSkillCount,
         routableSkillCount,
         degraded: degraded.length > 0 ? degraded : undefined,
         preflightNotes: notes,
         fixtures: fixtures.map((f) => ({ id: f.id, expected: f.expected, acceptable: f.acceptable }))
       },
-      runs
+      sessions
     },
     null,
     2
   )
 )
-summarize(runs)
+summarize(sessions)
 console.log(`wrote ${outFile}`)

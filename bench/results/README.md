@@ -5,7 +5,8 @@ Curated snapshots of `npm run bench:session` output, promoted from the gitignore
 
 **Development runs.** Everything on this page, the manual smoke tests and probes included,
 was recorded on pre-release router builds while the router was being built, except the
-2026-10-01 cross-model probes, which ran the released router. These runs
+2026-10-01 cross-model probes and the 2026-10-08 multi-turn cost A/B, which ran the
+released router bundles. These runs
 explain design decisions; they are not results for the released router. The only claimed
 results are the recorded runs in docs/evaluation/results.md.
 
@@ -13,6 +14,8 @@ results are the recorded runs in docs/evaluation/results.md.
   Run against the pre-rewrite router (prefilter shortlist still in place); the
   no-router arm is unaffected by that, router-arm latency/verdicts may differ
   from current code.
+- `bench-2026-10-08T20-11-06.json` — multi-turn cost A/B on the released bundles,
+  opus, 3 reps × 2 arms × 6 turns, symmetric stop rule; see its section below.
 - `shard-sweep-2026-09-22T04-17-33.json` — real-Jev shard-size sweep on the
   63-skill installed catalog (shardSize ∈ {63, 50, 25, 10} × 3 reps,
   build-animation session). Wall-clock is flat across configs (~120–320ms,
@@ -72,6 +75,49 @@ results are the recorded runs in docs/evaluation/results.md.
   signal; the fixture is currently non-discriminating). n=3 per cell; both
   arms run bare Claude Code (`--setting-sources project`), not a personally
   configured session.
+
+## Multi-turn cost A/B — 2026-10-08 (released bundles, opus, symmetric stop rule)
+
+`bench-2026-10-08T20-11-06.json`. First run of the rewritten harness: each arm is ONE
+streaming-input `claude -p` session carrying all six fixture prompts as sequential user
+turns (the multi-turn session a real user has), hooks wired to the released `dist/hooks`
+bundles, both arms on a project `.skillrouter.json` of `{exclude: [brief, debrief]}`
+(shipped policy otherwise), 64 routed skills, opus, 3 reps × 2 arms = 36 turns. **Stop
+rule symmetric:** every turn ran to natural completion in both arms (no early kill; the
+step cap and turn timeout never fired), so for the first time the cost, token and
+wall-clock deltas are comparable. Per-turn usage comes from each turn's `result` event;
+session cost from the last one. Development-tier evidence under the repo doctrine
+(model compliance is in the measurement), n=3 per cell.
+
+| Per session (6 turns) | stock, 3 reps | router, 3 reps | delta (router − stock) |
+|---|---|---|---|
+| Expected-skill slots hit | 14/18 (78%) | 18/18 (100%) | +4, all on commit-and-pr |
+| Negative control | silent 3/3 | silent 3/3 | — |
+| Junk loads | 0 | 1 (emil-design-eng on build-animation, rep 3) | +1 |
+| Gate denials / re-judges | — | 0 / 0 | — |
+| SKILL.md bytes loaded | 74.5k, 80.8k, 74.5k | 86.1k, 121.3k, 113.4k | +11.6k, +40.4k, +38.8k |
+| Cost (Claude Code estimate) | $0.90, $1.23, $0.97 | $1.10, $1.28, $1.42 | +$0.21, +$0.05, +$0.45 |
+| Wall clock | 122s, 159s, 136s | 156s, 170s, 208s | +35s, +11s, +72s |
+| Hook wall per turn | — | 0.3–0.4s (judge 250–357ms) | ≈ 2s of each wall delta |
+
+**The router did not save cost or latency; it spent more of both.** The added spend has
+two sources, both visible per turn in the JSON. (1) The workflow skills the stock arm
+skipped: on commit-and-pr opus stock loaded nothing in two reps and git-commit alone in
+the third, doing the commit with raw git in 10–19s; the routed arm loaded git-commit and
+git-create-pr every rep and followed their process in 22–25s. The hits gap is entirely
+this fixture. (2) Design-family co-invokes: the verdicts named 4–6 design skills on the
+toast and design-doc prompts; opus loaded one of them in four of six turns and three
+(+35k bytes) or two (+27k) in the other two. On the four task fixtures where stock
+already hit (animate, better-accessibility, write-swift, impeccable: 12/12), the arms
+loaded the same skill and the per-turn cost difference is noise.
+
+What this supports: the router's value on a frontier model with this catalog is control
+and coverage (workflow skills fire; no needless loads on either arm), not savings. A
+public cost or latency claim for the router is not available from this run and should
+not be made. Caveats: opus only; 64-skill catalog, not the 51 of the recorded runs;
+`spawnToInitMs` in this file is the LAST init event (streaming mode emits one per turn;
+fixed in the harness after the run); `usageFromMessages.outputTokens` undercounts (the
+stream's per-message usage is partial) — use `usage` from the result event.
 
 ## Manual smoke test — 2026-09-22 (Fable 5, real config, one session per arm)
 
