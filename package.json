@@ -1,6 +1,6 @@
 {
   "name": "jev-skill-router",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "A Jev-powered router that scores which agent skills to invoke for the current coding session.",
   "license": "MIT",
