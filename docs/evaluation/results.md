@@ -110,3 +110,21 @@ finding: the router is not a cost or latency saver. It hit 18/18 expected skills
 14/18 (the gap is the workflow skills opus skips unrouted), neither arm loaded a skill
 needlessly, and the router loaded 12k–40k more SKILL.md bytes and spent $0.05–$0.45 and
 11–72s more per six-turn session. The public line is coverage and control, never savings.
+
+## What would change the picture
+
+The evidence above is small and ours. These are the measurements that would move it from
+evidence toward proof, none of which exist yet:
+
+- **A second catalog.** Every recorded run is on one author's installed skills. A catalog
+  written by other people, with its own overlaps and naming, is the first real test.
+- **A labeler who is not the author.** Ground truth was curated by the person who built the
+  router. Independent labels on the same fixtures would check the labels, not the judge.
+- **A larger no-skill set.** 27 prompts show no needless loads; a few hundred, drawn from
+  real sessions, would show a rate.
+- **Stock selection at scale.** [Finding 0006](../findings/0006_the-skill-listing-is-a-lossy-dial.md)
+  says what each mechanism can see; nobody has measured how well the session model
+  chooses from a trimmed listing at a thousand skills.
+- **Same-domain multi-turn fixtures.** The bench's six prompts each need a different skill.
+  A session that stays in one domain would test the verdict's repeat behavior and the
+  bytes-loaded metric's session-level counting.

@@ -105,6 +105,11 @@ Recorded runs grade the judge alone; development runs put a session model in the
   The router reads every description every turn
   ([finding 0006](docs/findings/0006_the-skill-listing-is-a-lossy-dial.md)). Documented
   behavior, contrasted with recorded runs.
+- **The router matters most where the model is weakest.** On the same prompt, haiku loaded
+  no skill unrouted and the right one when routed, while three stronger models found it
+  either way
+  ([cross-model probes](bench/results/README.md#cross-model-probes-re-run--2026-10-01-released-router-both-arms)).
+  One run per model. Development.
 - **It is not a cost or latency saver.** About 0.3s and one Noul per skill per turn, and the
   model loads and does more with the skills it is handed
   ([bench results](bench/results/README.md#multi-turn-cost-ab--2026-10-08-released-bundles-opus-symmetric-stop-rule)).
@@ -127,7 +132,10 @@ Recorded runs grade the judge alone; development runs put a session model in the
 
 **Trade-offs.** It adds cost and latency rather than removing them. Overlapping catalogs
 co-invoke, which the doctor exists to clean up. The gate fails open and is not a security
-boundary. It runs only in Claude Code. And a frontier model on a small catalog already finds
+boundary, and enforcement ended up advisory: each time the gate denied hard it cost more
+than it saved, so it now advises, logs, and asks at the edge
+([finding 0005](docs/findings/0005_the-verdict-is-a-snapshot.md)). It runs only in Claude
+Code. And a frontier model on a small catalog already finds
 its task skills without help.
 
 ## How it works
