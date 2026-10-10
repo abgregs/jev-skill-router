@@ -65,10 +65,13 @@ findings are as much the point as the tool.
   prints every skill's probability for any prompt, so a skill that should have fired can be
   shown its number. Set `log` in `.skillrouter.json` and every turn's scores are written to
   a session log as well ([recording scores](docs/guide/claude-code-hooks.md#recording-scores)).
-- **Every description is read, at any catalog size.** Claude Code drops skill descriptions
-  from its listing once they exceed a fraction of the context window. The router judges all
-  of them in parallel: 51 skills in 121–270ms, 1,064 in about half a second. Spend is one
-  Noul per skill per prompt, so it grows with the catalog.
+- **Every description is read, at any catalog size.** Claude Code's skill listing has a
+  budget, a fraction of the context window set by one dial. Past it the listing keeps every
+  name but drops descriptions, least-used first, so for those skills the model is choosing
+  from a name alone, and nothing tells you which ones
+  ([Claude Code skills docs](https://code.claude.com/docs/en/skills#skill-descriptions-are-cut-short)). The router judges
+  every routed skill's full description in parallel: 51 skills in 121–270ms, 1,064 in about half a
+  second. Spend is one Noul per skill per prompt, so it grows with the catalog.
 - **Control is per prompt, in code.** Thresholds, an invoke band and a suggest band,
   `exclude`, `alwaysAllow`, and a gate that holds the model to the verdict, in place of
   per-skill switches set once.
@@ -91,6 +94,17 @@ Recorded runs grade the judge alone; development runs put a session model in the
 - **Single-turn evals miss the failure that matters.** Topic switches mid-session broke the
   judge until its input was reframed, and only a multi-turn bench caught it
   ([finding 0004](docs/findings/0004_weight-current-request-over-transcript.md)). Development.
+- **The verdict is a snapshot, so the gate asks before it denies.** A task reveals needs the
+  prompt never named, and a hard gate turned judge misses into session losses by refusing
+  the model's own correct reach. The gate now asks Jev about any off-list call and allows at
+  0.5: a discovered PDF load passed at 0.96, an unrelated Swift skill was kept out at 0.03
+  ([finding 0005](docs/findings/0005_the-verdict-is-a-snapshot.md)). Development.
+- **Claude Code's skill listing is a lossy dial.** By default the listing is budgeted at 1%
+  of the context window; past that, descriptions are dropped least-invoked first, which
+  removes the text selection depends on, and which skills lose it depends on your history.
+  The router reads every description every turn
+  ([finding 0006](docs/findings/0006_the-skill-listing-is-a-lossy-dial.md)). Documented
+  behavior, contrasted with recorded runs.
 - **It is not a cost or latency saver.** About 0.3s and one Noul per skill per turn, and the
   model loads and does more with the skills it is handed
   ([bench results](bench/results/README.md#multi-turn-cost-ab--2026-10-08-released-bundles-opus-symmetric-stop-rule)).
@@ -103,8 +117,9 @@ Recorded runs grade the judge alone; development runs put a session model in the
 
 - **Skill authors:** see how a skill scores against real prompts and where it collides with
   its siblings ([route](docs/guide/cli.md), [doctor](docs/guide/catalog-doctor.md)).
-- **Large-catalog maintainers:** proof the model sees every skill, and any skill's score for
-  any prompt on demand, with no context fraction to tune.
+- **Large-catalog maintainers:** proof every skill was judged on its full description every
+  turn, with no listing budget to tune or to truncate silently, and any skill's score for
+  any prompt on demand.
 - **Teams with process mandates:** workflow skills that standing instructions require fire
   instead of being skipped.
 - **People building or evaluating tool selection:** the methodology findings above.
@@ -222,6 +237,8 @@ Full breakdown and caveats: [results](docs/evaluation/results.md).
 | [0002](docs/findings/0002_co-invocation-improved-output.md) | Co-invoking overlapping skills improved output. | Development |
 | [0003](docs/findings/0003_invoke-is-a-command-suggest-is-a-menu.md) | Models follow invoke wholesale, to a degree that varies by model, and consult suggest when needed. | Development |
 | [0004](docs/findings/0004_weight-current-request-over-transcript.md) | Weight the current request over the transcript; bench multi-turn. | Development |
+| [0005](docs/findings/0005_the-verdict-is-a-snapshot.md) | The verdict is a snapshot; the gate asks Jev before denying an off-list call. | Development |
+| [0006](docs/findings/0006_the-skill-listing-is-a-lossy-dial.md) | Claude Code's skill listing is budgeted and trimmed by history; the router reads every description. | Claude Code docs, recorded runs |
 
 ## Development
 

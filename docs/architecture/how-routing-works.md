@@ -21,13 +21,13 @@ with one exception: a prompt that is only a go-ahead ("go", "proceed") is judged
 latest plan in the background, since that plan is what the user approved.
 
 Jev's limit is 32k tokens of state per request; the hook's budget is far under it and is
-set for accuracy, not size. TypeSafe documents that unrelated material in state costs
-accuracy, and 0004 was that effect in practice.
+set for accuracy, not size. TypeSafe [documents](https://docs.typesafe.ai/concepts/how-to-build-with-system-one)
+that unrelated material in state costs accuracy, and 0004 was that effect in practice.
 
 **Why `Noul`, not `Choice`.** We want an *independent* probability per skill, and to select
 *several* at once. `Choice` picks one winner from a single distribution (and caps at 255
 options). `Noul` gives each skill its own p(should invoke), the number you threshold. See
-the TypeSafe docs.
+the [TypeSafe docs](https://docs.typesafe.ai/primitives/noul).
 
 **Why judging everything stays fast.** Nouls are independent: no skill ever needs to see
 another to be scored. So the catalog shards (250 Nouls per request by default) and the
@@ -44,9 +44,10 @@ would never meet), while independent Nouls shard losslessly.
 
 It is also why the catalog's size never changes what the judge sees. Claude Code's own
 skill listing has a character budget, a fraction of the context window, and past it the
-listing keeps every skill's name but drops descriptions, least-invoked first (per the
-Claude Code skills docs). The router reads every routed skill's full description on every
-turn, whatever the catalog size.
+listing keeps every skill's name but drops descriptions, least-invoked first; the dial is
+`skillListingBudgetFraction`
+([Claude Code skills docs](https://code.claude.com/docs/en/skills#skill-descriptions-are-cut-short)). The router reads every
+routed skill's full description on every turn, whatever the catalog size.
 
 **The cost model is exactly one Noul per routed skill per routing decision**, plus one Noul
 for each off-list skill call the [gate re-judges](../guide/claude-code-hooks.md#the-gate),

@@ -24,5 +24,5 @@ rules still compose.
 | Axis | Where its rules live | Last audited |
 |---|---|---|
 | Judge inputs (prompt, background, framing) | [hooks guide](guide/claude-code-hooks.md#what-jev-reads), [how routing works](architecture/how-routing-works.md#1-judge), [results](evaluation/results.md), findings [0001](findings/0001_hierarchies-read-from-descriptions.md), [0004](findings/0004_weight-current-request-over-transcript.md) | 2026-10-07 |
-| Gate permissions (what passes the `Skill` tool) | [hooks guide](guide/claude-code-hooks.md#the-gate), [configuration](guide/configuration.md), [README](../README.md#how-it-works) | 2026-10-08 |
+| Gate permissions (what passes the `Skill` tool) | [hooks guide](guide/claude-code-hooks.md#the-gate), [configuration](guide/configuration.md), [README](../README.md#how-it-works), [finding 0005](findings/0005_the-verdict-is-a-snapshot.md) | 2026-10-08 |
 | Evidence tiers (recorded runs vs development) | this page, [evaluation](evaluation/README.md), [results](evaluation/results.md#development-runs), [findings](findings/README.md), [bench notes](../bench/results/README.md) | 2026-10-08 |
